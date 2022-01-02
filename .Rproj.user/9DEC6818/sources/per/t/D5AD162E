@@ -1,0 +1,24 @@
+{
+    "id": "D5AD162E",
+    "path": "/srv/shiny-server/kypoliticaldata/dev/03_deploy.R",
+    "project_path": "dev/03_deploy.R",
+    "type": "r_source",
+    "hash": "152780034",
+    "contents": "",
+    "dirty": false,
+    "created": 1634926743870.0,
+    "source_on_save": false,
+    "relative_order": 4,
+    "properties": {
+        "cursorPosition": "33,0",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1634928585,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1634928585919,
+    "read_only": false,
+    "read_only_alternatives": []
+}

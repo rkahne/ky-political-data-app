@@ -1,0 +1,134 @@
+library(tidyverse)
+library(DBI)
+library(reactable)
+library(htmltools)
+
+tbl(db, 'legislative_metadata') %>% 
+  filter(session == '2021 General Assembly') %>% 
+  select(bill_num, title, bill_summary, last_action, passed_house, passed_senate, passed) %>% 
+  left_join(
+    tbl(db, 'legislative_sponsors') %>% 
+      filter(session == '2021 General Assembly') %>% 
+      left_join(tbl(db, 'legislative_legislators') %>% 
+                  select(legislator_id, name, party)) %>% 
+      mutate(name_party = paste(name, party, sep = '|')) %>%
+      group_by(bill_num) %>% 
+      mutate(spon_list = str_flatten(name_party, collapse = ';')) %>% 
+      group_by(bill_num, spon_list, party) %>% 
+      summarize(spon_count = n()) %>% 
+      ungroup() %>% 
+      filter(!is.na(spon_count),
+             !is.na(party)) %>% 
+      pivot_wider(names_from = 'party', values_from = spon_count) %>% 
+      replace_na(list(`Democratic` = 0, `Republican` = 0))
+  ) %>% 
+  ungroup() %>% 
+  select(bill_num, title, bill_summary, last_action, spon_list, Democratic, Republican, passed_house, passed_senate, passed) %>% 
+  collect() %>% 
+  reactable(columns = list(
+    bill_num = colDef(name = 'Bill Number', cell = str_to_upper),
+    title = colDef(name = 'Bill Title', minWidth = 300),
+    bill_summary = colDef(name = 'Bill Summary', minWidth = 500),
+    last_action = colDef(name = 'Last Action'),
+    spon_list = colDef(name = 'Sponsors', cell = function(value){
+      tibble(sponsor = unlist(str_split(value, pattern = ';'))) %>%
+        separate(sponsor, c('name', 'party'), '\\|') %>%
+        mutate(name_css = case_when(party == 'Republican' ~ paste0('<span style="color:red">',name,'</span>'),
+                                    party == 'Democratic' ~ paste0('<span style="color:blue">',name,'</span>'),
+                                    T ~ paste0('<span>',name,'</span>'))) %>%
+        pull(name_css) %>%
+        paste(., collapse = ', ') %>%
+        HTML()
+    }, html = TRUE, minWidth = 300),
+    Democratic = colDef(name = 'Dem. Sponsors', minWidth = 80),
+    Republican = colDef(name = 'GOP Sponsors', minWidth = 80),
+    passed_house = colDef(name = 'Passed House', cell = function(value) if_else(value == 1, '\u2714\ufe0f', '\u274c'), minWidth = 75),
+    passed_senate = colDef(name = 'Passed Senate', cell = function(value) if_else(value == 1, '\u2714\ufe0f', '\u274c'), minWidth = 75),
+    passed = colDef(name = 'Passed Both', cell = function(value) if_else(value == 1, '\u2714\ufe0f', '\u274c'), minWidth = 75)
+  ),
+  searchable = TRUE,
+  filterable = TRUE,
+  defaultPageSize = 20)
+
+
+tbl(db, 'legislative_votes') %>% 
+  filter(session == '2021 General Assembly',
+         bill_num == 'hb1',
+         chamber == 'house') %>% 
+  left_join(tbl(db, 'legislative_legislators') %>% 
+              select(legislator_id, name, party)) %>% 
+  select(name, party, vote) %>% 
+  arrange(name) %>% 
+  collect() %>% 
+  reactable(columns = list(
+    name = colDef(name = 'Name'),
+    party = colDef(name = 'Party'),
+    vote = colDef(name = 'Vote', cell = function(value) if_else(value == 'YEA', '\u2714\ufe0f YEA', '\u274c NAY'))
+  ),
+  filterable = TRUE,
+  defaultPageSize = 100)
+
+tbl(db, 'legislative_votes') %>% 
+  filter(session == '2021 General Assembly',
+         bill_num == 'hb1',
+         chamber == 'senate') %>% 
+  left_join(tbl(db, 'legislative_legislators') %>% 
+              select(legislator_id, name, party)) %>% 
+  select(name, party, vote) %>% 
+  arrange(name) %>% 
+  collect() %>% 
+  reactable(columns = list(
+    name = colDef(name = 'Name'),
+    party = colDef(name = 'Party'),
+    vote = colDef(name = 'Vote', cell = function(value) if_else(value == 'YEA', '\u2714\ufe0f YEA', '\u274c NAY'))
+  ),
+  filterable = TRUE,
+  defaultPageSize = 100)
+
+tbl(db, 'legislative_votes') %>% 
+  filter(session == '2021 General Assembly',
+         bill_num == 'hb1',
+         chamber == 'senate') %>% 
+  left_join(tbl(db, 'legislative_legislators') %>% 
+              select(legislator_id, name, party))  %>% 
+  select(name, party, vote) %>% 
+  arrange(name) %>% 
+  collect() %>% 
+  count(party, vote) %>% 
+  group_by(vote) %>% 
+  mutate(Total = sum(n)) %>% 
+  pivot_wider(names_from = party, values_from = n) %>% 
+  replace_na(list(Democratic = 0, Republican = 0)) %>% 
+  mutate(ct = case_when(vote == 'YEA' ~ 1,
+                        vote == 'NAY' ~ 2,
+                        T ~ 3)) %>% 
+  arrange(ct) %>% 
+  select(-ct) %>% 
+  reactable(columns = list(
+    vote = colDef(name = 'Vote')
+  ))
+
+
+tbl(db, 'legislative_actions') %>% 
+  filter(session == '2021 General Assembly',
+         bill_num == 'hb1') %>% 
+  select(date, action) %>% 
+  collect() %>% 
+  rowid_to_column() %>% 
+  arrange(desc(rowid)) %>% 
+  select(-rowid) %>% 
+  reactable(columns = list(
+    date = colDef(name = 'Date', minWidth = 66),
+    action = colDef(name = 'Action', minWidth = 300)
+  ),
+  filterable = T,
+  defaultPageSize = 20)
+
+
+tbl(db, 'legislat') %>% 
+  filter(session == '2021 General Assembly',
+         bill_num == 'hb1')
+
+
+tbl(db, 'legislative_legislators') %>% 
+  filter()

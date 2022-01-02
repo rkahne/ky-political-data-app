@@ -1,0 +1,24 @@
+{
+    "id": "1377B4B4",
+    "path": "/srv/shiny-server/kypoliticaldata/R/app_ui.R",
+    "project_path": "R/app_ui.R",
+    "type": "r_source",
+    "hash": "892973330",
+    "contents": "",
+    "dirty": false,
+    "created": 1634927583304.0,
+    "source_on_save": false,
+    "relative_order": 4,
+    "properties": {
+        "cursorPosition": "31,92",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1640970372,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1640970372408,
+    "read_only": false,
+    "read_only_alternatives": []
+}

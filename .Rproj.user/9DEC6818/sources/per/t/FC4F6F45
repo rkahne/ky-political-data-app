@@ -1,0 +1,24 @@
+{
+    "id": "FC4F6F45",
+    "path": "/srv/shiny-server/kypoliticaldata/R/mod_redistricting.R",
+    "project_path": "R/mod_redistricting.R",
+    "type": "r_source",
+    "hash": "1281026153",
+    "contents": "",
+    "dirty": false,
+    "created": 1640970195593.0,
+    "source_on_save": false,
+    "relative_order": 11,
+    "properties": {
+        "cursorPosition": "27,51",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1640970431,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1640970431208,
+    "read_only": false,
+    "read_only_alternatives": []
+}
