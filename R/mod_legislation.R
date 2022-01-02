@@ -13,34 +13,38 @@ mod_legislation_ui <- function(id){
           fluidRow(
             box(width = 4, uiOutput(ns('select_session_ui')))
           ),
-          tabsetPanel(id = 'leg_tabs',
-                      tabPanel(title = 'Explore Bills', value = 'explore_bills',
+          tabsetPanel(id = ns('leg_tabs'),
+                      tabPanel(title = 'Explore Bills', value = ns('explore_bills'),
                                fluidRow(
                                  box(width = 12, reactableOutput(ns('bill_overview_table')) %>% shinycssloaders::withSpinner())
                                )),
-                      tabPanel(title = 'Bill Details', value = 'bill_details',
+                      tabPanel(title = 'Bill Details', value = ns('bill_details'),
                                fluidRow(
-                                 box(width = 4, uiOutput(ns('select_bill_ui')))
-                               ),
-                               fluidRow(
-                                 box(width = 12, uiOutput(ns('bill_detail_header')))
-                               ),
-                               fluidRow(
-                                 box(width = 12, tabsetPanel(id = 'leg_bill_details',
-                                                             tabPanel(title = 'Actions', value = 'actions',
-                                                                      box(width = 12, reactableOutput(ns('bill_detail_actions')))),
-                                                             tabPanel(title = 'Votes', value = 'votes',
-                                                                      box(width = 6, title = 'House', 
-                                                                          reactableOutput(ns('bill_house_vote_summary')),
-                                                                          reactableOutput(ns('bill_house_votes'))),
-                                                                      box(width = 6, title = 'Senate', 
-                                                                          reactableOutput(ns('bill_senate_vote_summary')),
-                                                                          reactableOutput(ns('bill_senate_votes'))))
-                                 )
+                                 box(width = 12,
+                                     fluidRow(
+                                       box(width = 4, uiOutput(ns('select_bill_ui')))
+                                     ),
+                                     fluidRow(
+                                       box(width = 12, uiOutput(ns('bill_detail_header')))
+                                     ),
+                                     fluidRow(
+                                       box(width = 12, tabsetPanel(id = ns('leg_bill_details'),
+                                                                   tabPanel(title = 'Actions', value = ns('actions'),
+                                                                            box(width = 12, reactableOutput(ns('bill_detail_actions')))),
+                                                                   tabPanel(title = 'Votes', value = ns('votes'),
+                                                                            box(width = 6, title = 'House', 
+                                                                                reactableOutput(ns('bill_house_vote_summary')),
+                                                                                reactableOutput(ns('bill_house_votes'))),
+                                                                            box(width = 6, title = 'Senate', 
+                                                                                reactableOutput(ns('bill_senate_vote_summary')),
+                                                                                reactableOutput(ns('bill_senate_votes'))))
+                                       )
+                                       )
+                                     )
                                  )
                                )
                                ),
-                      tabPanel(title = 'Legislator Details', value = 'bill_legislator_details',
+                      tabPanel(title = 'Legislator Details', value = ns('bill_legislator_details'),
                                fluidRow(
                                  box(width = 4, uiOutput(ns('select_legislator_ui')))
                                ),

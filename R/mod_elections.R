@@ -440,7 +440,7 @@ mod_elections_server <- function(id){
             mutate(VTDST = paste0('00',Precinct),
                    COUNTYFP = as.character(fips) %>% str_sub(3,5))
           
-          map_data_shp <- ky_precicnts %>% 
+          map_data_shp <- ky_precincts %>% 
             mutate(county = str_to_lower(NAME),
                    COUNTYFP = as.character(COUNTYFP)) %>% 
             inner_join(map_data, by = c('COUNTYFP', 'VTDST'))

@@ -38,7 +38,8 @@ onStop(function() {
 })
 
 ky_counties <- readr::read_rds('/srv/data/shapefiles/counties.rds')
-ky_precicnts <- readr::read_rds('/srv/data/shapefiles/precincts.rds')
+ky_precincts <- readr::read_rds('/srv/data/shapefiles/precincts.rds')
+house_plan <- readr::read_rds('/srv/data/shapefiles/gop_plan_22_shp.rds')
 
 app_server <- function( input, output, session ) {
   # Your application server logic 
