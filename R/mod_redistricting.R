@@ -11,12 +11,23 @@ mod_redistricting_ui <- function(id){
   ns <- NS(id)
   tabItem(tabName = 'redistricting', 
           tabsetPanel(id = ns('redist_tabs'),
-                      tabPanel(title = 'New Proposed House Districts', value = ns('redist_full_map'),
+                      tabPanel(title = 'New Proposed Districts', value = ns('redist_full_map'),
                                    fluidRow(
-                                     box(width = 12,
-                                       selectInput(ns('yr'), 'Select Year', c(2014, 2022), 2022),
-                                       box(width = 12, 'Please be patient while the map loads', leafletOutput(ns('house_map'), height = 800) %>% withSpinner())
-                                   )
+                                     tabsetPanel(id = ns('redist_top_level'),
+                                                 tabPanel(title = 'House', value = ns('redist_top_house'),
+                                                          box(width = 12,
+                                                              box(width = 12, 'Please be patient while the map loads', leafletOutput(ns('house_map'), height = 800) %>% withSpinner())
+                                                          )),
+                                                 tabPanel(title = 'Senate', value = ns('redist_top_sen'),
+                                                          box(width = 12,
+                                                              box(width = 12, 'Please be patient while the map loads', leafletOutput(ns('senate_map'), height = 800) %>% withSpinner())
+                                                          )),
+                                                 tabPanel(title = 'Congress', value = ns('redist_top_cong'),
+                                                          box(width = 12,
+                                                              box(width = 12, 'Please be patient while the map loads', leafletOutput(ns('cong_map'), height = 800) %>% withSpinner())
+                                                          ))
+                                     )
+                                     
                                 )
                                
                       ),
@@ -24,8 +35,9 @@ mod_redistricting_ui <- function(id){
                                  fluidRow(
                                    box(width = 12,
                                        fluidRow(
+                                         box(width = 2, selectInput(ns('select_chamber'), 'Select Chamber', c('House', 'Senate'))),
                                          box(width = 4, uiOutput(ns('select_district_ui'))),
-                                         box(width = 4, selectInput(ns('select_year'), 'Select Year', c(2018, 2019, 2020))),
+                                         box(width = 2, selectInput(ns('select_year'), 'Select Year', c(2018, 2019, 2020))),
                                          box(width = 4, uiOutput(ns('select_race_ui')))
                                        ),
                                        fluidRow(
@@ -218,43 +230,140 @@ mod_redistricting_server <- function(id){
                 T ~ 'white')
     }
     
-    prec <- reactive({tbl(db, 'redistricting_gop_house_22') %>% 
-        filter(district == !!input$select_district) %>% 
-        select(county, precinct)})
+    prec <- reactive({
+      if(length(input$select_chamber) > 0 &
+         length(input$select_district) > 0){
+        if(input$select_chamber == 'House'){
+          tbl(db, 'redistricting_gop_house_22_hcs') %>% 
+            filter(district == !!input$select_district) %>% 
+            select(county, precinct)
+        }else{
+          tbl(db, 'redistricting_gop_sen_22') %>% 
+            filter(district == !!input$select_district) %>% 
+            select(county, precinct)
+        }
+      }
+      
+      })
     
     map_data_init <- reactive({
       if(length(input$select_year) > 0 & 
-         length(input$select_race) > 0){
+         length(input$select_race) > 0 & 
+         length(input$select_chamber)){
         tbl(db, 'election_data') %>% 
           filter(year == !!input$select_year,
                  election == 'general',
                  race == !!input$select_race) %>% 
+          mutate(Precinct = str_sub(Precinct, 1, 4)) %>% 
+          group_by(Precinct, county, race, candidate, year, election, party) %>%
+          summarize(votes = sum(votes)) %>% 
+          ungroup() %>% 
           inner_join(prec(), by = c('county', 'Precinct' = 'precinct')) %>% 
           collect()
       }
     })
     
     output$house_map <- renderLeaflet({
-      if(input$yr == 2014){
-        house_14
-      }else{
-        house_22
-      }
+      leaflet() %>% 
+        addTiles() %>% 
+        addPolygons(data = house_plan_hcs,
+                    group = '2022 HCS',
+                    weight = 2,
+                    opacity = 1,
+                    color = "black",
+                    fillOpacity = 0,
+                    label = ~district) %>% 
+        addPolygons(data = house_plan,
+                    group = '2022 Original Bill',
+                    weight = 2,
+                    opacity = 1,
+                    color = "green",
+                    fillOpacity = 0,
+                    label = ~district) %>% 
+        addPolygons(data = house_plan_dem,
+                    group = '2022 Democratic Plan',
+                    weight = 2,
+                    opacity = 1,
+                    color = "blue",
+                    fillOpacity = 0,
+                    label = ~district)%>% 
+        addPolygons(data = house_2014,
+                    group = '2014',
+                    weight = 2,
+                    opacity = 1,
+                    color = "red",
+                    fillOpacity = 0,
+                    label = ~DISTRICT) %>% 
+        addLayersControl(
+          overlayGroups = c('2022 HCS', '2022 Original Bill', '2022 Democratic Plan', '2014'),
+          options = layersControlOptions(collapsed = FALSE)
+        ) %>% 
+        hideGroup(c('2022 Original Bill', '2022 Democratic Plan', '2014'))
+    })
+    
+    output$senate_map <- renderLeaflet({
+      leaflet() %>% 
+        addTiles() %>% 
+        addPolygons(data = sen_plan,
+                    group = '2022',
+                    weight = 2,
+                    opacity = 1,
+                    color = "black",
+                    fillOpacity = 0,
+                    label = ~district) %>% 
+        addPolygons(data = sen_2014,
+                    group = '2014',
+                    weight = 2,
+                    opacity = 1,
+                    color = "blue",
+                    fillOpacity = 0,
+                    label = ~DISTRICT) %>% 
+        addLayersControl(
+          overlayGroups = c('2022', '2014'),
+          options = layersControlOptions(collapsed = FALSE)
+        ) %>% 
+        hideGroup('2014')
+    })
+    
+    output$cong_map <- renderLeaflet({
+      leaflet() %>% 
+        addTiles() %>% 
+        addPolygons(data = cong_plan,
+                    group = '2022',
+                    weight = 2,
+                    opacity = 1,
+                    color = "black",
+                    fillOpacity = 0,
+                    label = ~district) 
     })
     
     output$select_district_ui <- renderUI({
-      opts <- tbl(db, 'redistricting_gop_house_22') %>% 
-        select(district) %>% 
-        distinct() %>% 
-        collect() %>%
-        mutate(row = str_remove_all(district, 'District ') %>% as.numeric()) %>% 
-        arrange(row) %>% 
-        pull(district)
-      pickerInput(ns('select_district'), 
-                  'Select District', 
-                  opts,
-                  multiple = FALSE,
-                  options = pickerOptions('liveSearch' = TRUE)) %>% withSpinner()
+      if(length(input$select_chamber) > 0){
+        if(input$select_chamber == 'House'){
+          opts <- tbl(db, 'redistricting_gop_house_22_hcs') %>% 
+            select(district) %>% 
+            distinct() %>% 
+            collect() %>%
+            mutate(row = str_remove_all(district, 'District ') %>% as.numeric()) %>% 
+            arrange(row) %>% 
+            pull(district)
+        }else{
+          opts <- tbl(db, 'redistricting_gop_sen_22') %>% 
+            select(district) %>% 
+            distinct() %>% 
+            collect() %>%
+            mutate(row = str_remove_all(district, 'District ') %>% as.numeric()) %>% 
+            arrange(row) %>% 
+            pull(district)
+        }
+        
+        pickerInput(ns('select_district'), 
+                    'Select District', 
+                    opts,
+                    multiple = FALSE,
+                    options = pickerOptions('liveSearch' = TRUE)) %>% withSpinner()
+      }
+      
     })
     
     output$select_race_ui <- renderUI({
@@ -314,10 +423,16 @@ mod_redistricting_server <- function(id){
                  COUNTYFP = as.character(COUNTYFP)) %>% 
           inner_join(map_data, by = c('COUNTYFP', 'VTDST'))
         
+        if(input$select_chamber == 'House'){
+          map_shp <- house_plan_hcs %>% filter(district == str_remove_all(!!input$select_district, 'District '))
+        }else{
+          map_shp <- sen_plan %>% filter(district == !!input$select_district)
+        }
+        
         leaflet() %>%
           addTiles()  %>% 
           addPolygons(
-            data = house_plan %>% filter(district == !!input$select_district),
+            data = map_shp,
             weight = 2,
             opacity = 1,
             color = 'black',

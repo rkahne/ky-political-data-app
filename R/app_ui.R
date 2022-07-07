@@ -30,13 +30,24 @@ app_ui <- function(request) {
         sidebarMenu(id = 'sidebar_menu',
                     menuItem('Elections', tabName = 'elections', icon = icon('vote-yea')),
                     menuItem('Legislation', tabName = 'legislation', icon = icon('landmark')),
-                    menuItem('Redistricting', tabName = 'redistricting', icon = icon('map'), selected = TRUE))
+                    menuItem('Redistricting', tabName = 'redistricting', icon = icon('map')),
+                    menuItem('Candidates 2022', tabName = 'election_22', icon = icon('democrat'), selected = TRUE),
+                    menuItem('Primary Election 2022', tabName = 'primary_22', icon = icon('ballot'))),
+        htmltools::HTML('<br/><br/><br/><br/><br/><div>Created by Robert Kahne<br />Available for consulting<br />rkahne@gmail.com</div>
+                        <br/><div>Notice something missing? Email me!</div>'),
+        actionButton(inputId='ab1', 
+                     label="Tip Me on Venmo",
+                     icon = icon("money-bill"), 
+                     onclick ="window.open('https://account.venmo.com/pay?recipients=robert-kahne', '_blank')")
       ),
       dashboardBody(
+        tags$style(type = "text/css", "#prim_22_leaf {height: calc(100vh - 80px) !important;}"),
         tabItems(
           mod_elections_ui("elections_ui_1"),
           mod_legislation_ui("legislation_ui_1"),
-          mod_redistricting_ui("redistricting_ui_1")
+          mod_redistricting_ui("redistricting_ui_1"),
+          mod_election_22_ui("election_22_ui_1"),
+          mod_primary_22_ui("primary_22_ui_1")
         ),
         tags$style(type="text/css",
                    ".shiny-output-error { visibility: hidden; }",
