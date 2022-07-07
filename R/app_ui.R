@@ -32,7 +32,8 @@ app_ui <- function(request) {
                     menuItem('Legislation', tabName = 'legislation', icon = icon('landmark')),
                     menuItem('Redistricting', tabName = 'redistricting', icon = icon('map')),
                     menuItem('Candidates 2022', tabName = 'election_22', icon = icon('democrat'), selected = TRUE),
-                    menuItem('Primary Election 2022', tabName = 'primary_22', icon = icon('ballot'))),
+                    menuItem('Primary Election 2022', tabName = 'primary_22', icon = icon('ballot')),
+                    menuItem('Fundraising', tabName = 'fundraising', icon = icon('money-bill'))),
         htmltools::HTML('<br/><br/><br/><br/><br/><div>Created by Robert Kahne<br />Available for consulting<br />rkahne@gmail.com</div>
                         <br/><div>Notice something missing? Email me!</div>'),
         actionButton(inputId='ab1', 
@@ -47,7 +48,8 @@ app_ui <- function(request) {
           mod_legislation_ui("legislation_ui_1"),
           mod_redistricting_ui("redistricting_ui_1"),
           mod_election_22_ui("election_22_ui_1"),
-          mod_primary_22_ui("primary_22_ui_1")
+          mod_primary_22_ui("primary_22_ui_1"),
+          mod_fundraising_ui("fundraising_ui_1")
         ),
         tags$style(type="text/css",
                    ".shiny-output-error { visibility: hidden; }",

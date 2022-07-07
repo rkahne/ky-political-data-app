@@ -55,4 +55,5 @@ app_server <- function( input, output, session ) {
   mod_redistricting_server("redistricting_ui_1")
   mod_election_22_server("election_22_ui_1")
   mod_primary_22_server("primary_22_ui_1")
+  mod_fundraising_server("fundraising_ui_1")
 }
