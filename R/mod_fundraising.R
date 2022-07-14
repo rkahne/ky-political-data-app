@@ -254,7 +254,7 @@ mod_fundraising_server <- function(id){
         # filter(election_date == '2023-05-16',
         #        office_sought == str_to_upper('Governor'),
         #        candidate == 'BESHEAR_ANDY') %>%
-        collect()
+        collect() 
       
       candidate_disburse_df <- tbl(db, 'fundraising_expend') %>% 
         filter(election_date == !!input$select_election,
@@ -264,6 +264,12 @@ mod_fundraising_server <- function(id){
         #        office_sought == str_to_upper('Governor'),
         #        candidate == 'BESHEAR_ANDY') %>%
         collect()
+      
+      min_date <- min(c(min(candidate_df$receipt_date, na.rm = T), min(candidate_disburse_df$disbursement_date, na.rm = T)))
+      candidate_df <- candidate_df %>% 
+        replace_na(list(receipt_date = min_date))
+      candidate_disburse_df <- candidate_disburse_df %>% 
+        replace_na(list(disbursement_date = min_date))
       
       if(!!input$graph_sel == 'Burn Rate'){
         candidate_df %>% 
