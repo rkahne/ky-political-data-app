@@ -31,9 +31,9 @@ app_ui <- function(request) {
                     menuItem('Elections', tabName = 'elections', icon = icon('vote-yea')),
                     menuItem('Legislation', tabName = 'legislation', icon = icon('landmark')),
                     menuItem('Redistricting', tabName = 'redistricting', icon = icon('map')),
-                    menuItem('Candidates 2022', tabName = 'election_22', icon = icon('democrat'), selected = TRUE),
-                    menuItem('Primary Election 2022', tabName = 'primary_22', icon = icon('ballot')),
-                    menuItem('Fundraising', tabName = 'fundraising', icon = icon('money-bill'))),
+                    menuItem('Fundraising', tabName = 'fundraising', icon = icon('money-bill'), selected = TRUE),
+                    menuItem('Candidates 2022', tabName = 'election_22', icon = icon('democrat')),
+                    menuItem('Primary Election 2022', tabName = 'primary_22', icon = icon('ballot'))),
         htmltools::HTML('<br/><br/><br/><br/><br/><div>Created by Robert Kahne<br />Available for consulting<br />rkahne@gmail.com</div>
                         <br/><div>Notice something missing? Email me!</div>'),
         actionButton(inputId='ab1', 
