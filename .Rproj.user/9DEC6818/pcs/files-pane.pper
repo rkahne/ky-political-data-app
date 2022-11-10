@@ -1,9 +1,13 @@
 {
     "sortOrder": [
         {
+            "columnIndex": 3,
+            "ascending": false
+        },
+        {
             "columnIndex": 2,
             "ascending": true
         }
     ],
-    "path": "/srv/shiny-server/kypoliticaldata/R"
+    "path": "/srv/shiny-server/kypoliticaldata_dev/R"
 }

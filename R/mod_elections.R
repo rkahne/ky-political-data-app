@@ -46,6 +46,7 @@ mod_elections_server <- function(id){
           filter(year == !!input$select_year,
                  election == str_to_lower(!!input$primary_general),
                  race == !!input$select_election) %>% 
+          distinct() %>% 
           collect()
       }
       }) 
@@ -440,7 +441,6 @@ mod_elections_server <- function(id){
             mutate(VTDST = paste0('00',Precinct),
                    COUNTYFP = as.character(fips) %>% str_sub(3,5))
           
-          # WORK
           if(!!input$select_election < 2022){
             prec_map <- ky_precincts
           }else{
