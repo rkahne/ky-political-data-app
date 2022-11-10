@@ -19,7 +19,7 @@ mod_elections_ui <- function(id){
           fluidRow(
             box(width = 12, 
                 actionButton(ns('draw_map'), label = 'Draw Map'), 'Please only click me once and be patient :) (You will need to zoom manually)',
-                leafletOutput(ns('election_map')) %>% withSpinner())
+                leafletOutput(ns('election_map'), height = 650) %>% withSpinner())
           ),
           fluidRow(
             box(width = 6, reactableOutput(ns('election_result')))
@@ -440,7 +440,14 @@ mod_elections_server <- function(id){
             mutate(VTDST = paste0('00',Precinct),
                    COUNTYFP = as.character(fips) %>% str_sub(3,5))
           
-          map_data_shp <- ky_precincts %>% 
+          # WORK
+          if(!!input$select_election < 2022){
+            prec_map <- ky_precincts
+          }else{
+            prec_map <- ky_precincts_22
+          }
+          
+          map_data_shp <- prec_map %>% 
             mutate(county = str_to_lower(NAME),
                    COUNTYFP = as.character(COUNTYFP)) %>% 
             inner_join(map_data, by = c('COUNTYFP', 'VTDST'))

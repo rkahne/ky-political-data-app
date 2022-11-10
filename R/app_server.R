@@ -40,6 +40,7 @@ onStop(function() {
 
 ky_counties <- readr::read_rds('/srv/data/shapefiles/counties.rds')
 ky_precincts <- readr::read_rds('/srv/data/shapefiles/precincts.rds')
+ky_precincts_22 <- readr::read_rds('/srv/data/shapefiles/ky_shp_new_lou.rds')
 house_plan <- readr::read_rds('/srv/data/shapefiles/gop_plan_22_shp_BILL_VERSION.rds')
 house_plan_hcs <- readr::read_rds('/srv/data/shapefiles/gop_plan_22_shp_hcs.rds')
 house_plan_dem <- readr::read_rds('/srv/data/shapefiles/dem_plan_22_shp.rds')
