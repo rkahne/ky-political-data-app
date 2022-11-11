@@ -14,7 +14,8 @@ mod_elections_ui <- function(id){
             box(width = 2, uiOutput(ns('select_year_ui')) %>% withSpinner()),
             box(width = 2, uiOutput(ns('primary_general_ui')) %>% withSpinner()),
             box(width = 4, uiOutput(ns('select_election_ui')) %>% withSpinner()),
-            box(width = 2, selectInput(ns('precinct_county'), label = 'Detail Level', c('Precinct', 'County')))
+            box(width = 2, selectInput(ns('precinct_county'), label = 'Detail Level', c('Precinct', 'County'))),
+            box(width = 2, uiOutput(ns('include_counties_ui')) %>% withSpinner)
           ),
           fluidRow(
             box(width = 12, 
@@ -42,12 +43,14 @@ mod_elections_server <- function(id){
       if(length(input$select_year) > 0 & 
          length(input$primary_general) > 0 &
          length(input$select_election) > 0){
+        coun <- str_to_lower(input$include_counties)
         tbl(db, 'election_data') %>% 
           filter(year == !!input$select_year,
-                 election == str_to_lower(!!input$primary_general),
-                 race == !!input$select_election) %>% 
+                 election == !!str_to_lower(input$primary_general),
+                 race == !!input$select_election,
+                 county %in% coun) %>% 
           distinct() %>% 
-          collect()
+          collect() 
       }
       }) 
     
@@ -250,6 +253,27 @@ mod_elections_server <- function(id){
                   options = pickerOptions('liveSearch' = TRUE))
     })
     
+    output$include_counties_ui <- renderUI({
+      counties <- tbl(db, 'election_data') %>% 
+        filter(year == !!input$select_year,
+               election == str_to_lower(!!input$primary_general),
+               race == !!input$select_election) %>% 
+        select(county) %>% 
+        distinct() %>% 
+        mutate(county = str_to_lower(county)) %>% 
+        collect() %>% 
+        pull(county)
+      pickerInput(ns('include_counties'), 
+                  label = 'Select Counties for Map', 
+                  choices = counties,
+                  multiple = TRUE,
+                  selected = counties,
+                  options = pickerOptions('liveSearch' = TRUE,
+                                          `actions-box` = TRUE,
+                                          `deselect-all-text` = "Select None",
+                                          `select-all-text` = "Select All"))
+    })
+    
     output$election_result <- renderReactable({
       map_data_init() %>% 
         group_by(candidate) %>% 
@@ -441,7 +465,7 @@ mod_elections_server <- function(id){
             mutate(VTDST = paste0('00',Precinct),
                    COUNTYFP = as.character(fips) %>% str_sub(3,5))
           
-          if(!!input$select_election < 2022){
+          if(input$select_year < 2022){
             prec_map <- ky_precincts
           }else{
             prec_map <- ky_precincts_22
