@@ -120,7 +120,7 @@ mod_legislation_server <- function(id){
     })
     
     output$update_day_ui <- renderUI({
-      if(input$select_session == '2022 General Assembly'){
+      if(input$select_session == '2023 General Assembly'){
         update_day <- collect(tbl(db, 'legislative_update_day'))$update_day
         box(width = 2, str_glue('Last Update: {month(update_day, label = TRUE, abbr = FALSE)} {day(update_day)}, {year(update_day)}'))
       }
@@ -378,7 +378,9 @@ mod_legislation_server <- function(id){
     
     output$select_legislator_ui <- renderUI({
       if(!is.null(input$select_session)){
-        session_selected <- case_when(input$select_session == "2022 General Assembly" ~ 'ga_22',
+        session_selected <- case_when(input$select_session == "2024 General Assembly" ~ 'ga_24',
+                                      input$select_session == "2023 General Assembly" ~ 'ga_23',
+                                      input$select_session == "2022 General Assembly" ~ 'ga_22',
                                       input$select_session == "2021 General Assembly" ~ 'ga_21',
                                       input$select_session == "2020 General Assembly" ~ 'ga_20',
                                       input$select_session == "2019 General Assembly" ~ 'ga_19',

@@ -1,7 +1,7 @@
 {
     "sortOrder": [
         {
-            "columnIndex": 3,
+            "columnIndex": 4,
             "ascending": false
         },
         {
@@ -9,5 +9,5 @@
             "ascending": true
         }
     ],
-    "path": "/srv/shiny-server/kypoliticaldata_dev/R"
+    "path": "/srv/shiny-server/kypoliticaldata/R"
 }

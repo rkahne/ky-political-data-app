@@ -55,7 +55,12 @@ mod_fundraising_server <- function(id){
         mutate(year = year(election_date), 
                election_select = paste(str_to_title(election_type), year)) %>%
         select(election_select, election_date) %>% 
-        distinct()
+        distinct() %>% 
+        group_by(election_date) %>%
+        mutate(n = 1:n()) %>% 
+        filter(n == 1) %>% 
+        select(-n) %>% 
+        ungroup() 
       elect_opts <- elec_opts_tib$election_date
       names(elect_opts) <- elec_opts_tib$election_select
       selectInput(ns('select_election'), 'Select Election', elect_opts)

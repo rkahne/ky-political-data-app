@@ -40,7 +40,9 @@ onStop(function() {
 
 ky_counties <- readr::read_rds('/srv/data/shapefiles/counties.rds')
 ky_precincts <- readr::read_rds('/srv/data/shapefiles/precincts.rds')
-ky_precincts_22 <- readr::read_rds('/srv/data/shapefiles/ky_shp_new_lou.rds')
+ky_precincts_22 <- readr::read_rds('/srv/data/shapefiles/ky_shp_22.rds') %>% mutate(VTDST = paste0('00',PRECINCT))
+ky_precincts_23 <- readr::read_rds('/srv/data/shapefiles/ky_shp_24.rds') %>% mutate(VTDST = paste0('00',PRECINCT))
+ky_precincts_24 <- readr::read_rds('/srv/data/shapefiles/ky_shp_general_24.rds') %>% mutate(VTDST = paste0('00',PRECINCT))
 house_plan <- readr::read_rds('/srv/data/shapefiles/gop_plan_22_shp_BILL_VERSION.rds')
 house_plan_hcs <- readr::read_rds('/srv/data/shapefiles/gop_plan_22_shp_hcs.rds')
 house_plan_dem <- readr::read_rds('/srv/data/shapefiles/dem_plan_22_shp.rds')
@@ -50,6 +52,14 @@ sen_plan <- readr::read_rds('/srv/data/shapefiles/gop_plan_sen_22.rds')
 sen_2014 <- readr::read_rds('/srv/data/shapefiles/senate_map_2014.rds')
 
 app_server <- function( input, output, session ) {
+  output$kpd_bar <- renderImage({
+    list(src = '/srv/img/logo_crop.png',
+         alt = 'Kentucky Political Data',
+         width = 200,
+         height = 175)
+    
+  }, deleteFile = FALSE)
+  
   # Your application server logic 
   mod_elections_server("elections_ui_1")
   mod_legislation_server("legislation_ui_1")

@@ -31,15 +31,16 @@ app_ui <- function(request) {
                     menuItem('Elections', tabName = 'elections', icon = icon('vote-yea'), selected = TRUE),
                     menuItem('Legislation', tabName = 'legislation', icon = icon('landmark')),
                     menuItem('Redistricting', tabName = 'redistricting', icon = icon('map')),
-                    menuItem('Fundraising', tabName = 'fundraising', icon = icon('money-bill'))),#,
-                    # menuItem('Candidates 2022', tabName = 'election_22', icon = icon('democrat')),
+                    menuItem('Fundraising', tabName = 'fundraising', icon = icon('money-bill')),#,
+                    menuItem('Legislative Candidates 2024', tabName = 'election_22', icon = icon('democrat'))),
                     # menuItem('Primary Election 2022', tabName = 'primary_22', icon = icon('ballot'))),
         htmltools::HTML('<br/><br/><br/><br/><br/><div>Created by Robert Kahne<br />Available for consulting<br />rkahne@gmail.com</div>
                         <br/><div>Notice something missing? Email me!</div>'),
         actionButton(inputId='ab1', 
                      label="Tip Me on Venmo",
                      icon = icon("money-bill"), 
-                     onclick ="window.open('https://account.venmo.com/pay?recipients=robert-kahne', '_blank')")
+                     onclick ="window.open('https://account.venmo.com/pay?recipients=robert-kahne', '_blank')"),
+        imageOutput('kpd_bar')
       ),
       dashboardBody(
         tags$style(type = "text/css", "#prim_22_leaf {height: calc(100vh - 80px) !important;}"),
@@ -47,7 +48,7 @@ app_ui <- function(request) {
           mod_elections_ui("elections_ui_1"),
           mod_legislation_ui("legislation_ui_1"),
           mod_redistricting_ui("redistricting_ui_1"),
-          # mod_election_22_ui("election_22_ui_1"),
+          mod_election_22_ui("election_22_ui_1"),
           # mod_primary_22_ui("primary_22_ui_1"),
           mod_fundraising_ui("fundraising_ui_1")
         ),

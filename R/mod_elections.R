@@ -15,11 +15,12 @@ mod_elections_ui <- function(id){
             box(width = 2, uiOutput(ns('primary_general_ui')) %>% withSpinner()),
             box(width = 4, uiOutput(ns('select_election_ui')) %>% withSpinner()),
             box(width = 2, selectInput(ns('precinct_county'), label = 'Detail Level', c('Precinct', 'County'))),
-            box(width = 2, uiOutput(ns('include_counties_ui')) %>% withSpinner)
+            box(width = 2, uiOutput(ns('include_counties_ui')) %>% withSpinner())
           ),
           fluidRow(
             box(width = 12, 
-                actionButton(ns('draw_map'), label = 'Draw Map'), 'Please only click me once and be patient :) (You will need to zoom manually)',
+                actionButton(ns('draw_map'), label = 'Draw Map'), 'Please only click me once and be patient :) (You will need to zoom manually)
+                Please note: results are based on scrape of election night results. Consult offical results for 100% correct totals.',
                 leafletOutput(ns('election_map'), height = 650) %>% withSpinner())
           ),
           fluidRow(
@@ -467,8 +468,12 @@ mod_elections_server <- function(id){
           
           if(input$select_year < 2022){
             prec_map <- ky_precincts
-          }else{
+          }else if(input$select_year == 2022){
             prec_map <- ky_precincts_22
+          }else if(input$select_year == 2023){
+            prec_map <- ky_precincts_23
+          }else{
+            prec_map <- ky_precincts_24
           }
           
           map_data_shp <- prec_map %>% 

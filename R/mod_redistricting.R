@@ -37,7 +37,7 @@ mod_redistricting_ui <- function(id){
                                        fluidRow(
                                          box(width = 2, selectInput(ns('select_chamber'), 'Select Chamber', c('House', 'Senate'))),
                                          box(width = 4, uiOutput(ns('select_district_ui'))),
-                                         box(width = 2, selectInput(ns('select_year'), 'Select Year', c(2018, 2019, 2020))),
+                                         box(width = 2, selectInput(ns('select_year'), 'Select Year', c(2018, 2019, 2020, 2022))),
                                          box(width = 4, uiOutput(ns('select_race_ui')))
                                        ),
                                        fluidRow(
