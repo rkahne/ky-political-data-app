@@ -28,11 +28,11 @@ app_ui <- function(request) {
       dashboardHeader(title = ''),
       dashboardSidebar(
         sidebarMenu(id = 'sidebar_menu',
-                    menuItem('Elections', tabName = 'elections', icon = icon('vote-yea'), selected = TRUE),
-                    menuItem('Legislation', tabName = 'legislation', icon = icon('landmark')),
+                    menuItem('Elections', tabName = 'elections', icon = icon('vote-yea')),
+                    menuItem('Legislation', tabName = 'legislation', icon = icon('landmark'), selected = TRUE),
                     menuItem('Redistricting', tabName = 'redistricting', icon = icon('map')),
-                    menuItem('Fundraising', tabName = 'fundraising', icon = icon('money-bill')),#,
-                    menuItem('Legislative Candidates 2024', tabName = 'election_22', icon = icon('democrat'))),
+                    menuItem('Fundraising', tabName = 'fundraising', icon = icon('money-bill')),
+                    menuItem('Legislative Candidates 2026', tabName = 'election_22', icon = icon('democrat'))),
                     # menuItem('Primary Election 2022', tabName = 'primary_22', icon = icon('ballot'))),
         htmltools::HTML('<br/><br/><br/><br/><br/><div>Created by Robert Kahne<br />Available for consulting<br />rkahne@gmail.com</div>
                         <br/><div>Notice something missing? Email me!</div>'),

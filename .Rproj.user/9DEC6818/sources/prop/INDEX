@@ -1,3 +1,5 @@
+%2Fetc%2Fnginx%2Fsites-available%2Fkypoliticaldata.com="B0400C24"
+%2Fsrv%2Fscripts%2Fdump_db.R="BEA3C133"
 %2Fsrv%2Fscripts%2Frebuild_election_data.R="D3A59890"
 %2Fsrv%2Fscripts%2Frewrite_elect_fix_ind_2022.R="08526CFE"
 %2Fsrv%2Fscripts%2Fwrite_candidates.R="4C94E215"
@@ -23,6 +25,7 @@
 %2Fsrv%2Fshiny-server%2Fkypoliticaldata%2Fdev%2Frun_dev.R="8707DEEA"
 %2Fsrv%2Fshiny-server%2Fkypoliticaldata_dev%2FR%2Fapp_server.R="691CE4B9"
 %2Fsrv%2Fshiny-server%2Fkypoliticaldata_dev%2FR%2Fapp_ui.R="A4469761"
+%2Fsrv%2Fshiny-server%2Fkypoliticaldata_dev%2FR%2Fmod_election_22.R="84B88B85"
 %2Fsrv%2Fshiny-server%2Fkypoliticaldata_dev%2FR%2Fmod_elections.R="85D7F16A"
 %2Fsrv%2Fshiny-server%2Fkypoliticaldata_dev%2FR%2Fmod_fundraising.R="DF9F591B"
 %2Fsrv%2Fshiny-server%2Fkypoliticaldata_dev%2FR%2Fmod_legislation.R="E35191D8"

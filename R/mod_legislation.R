@@ -120,7 +120,7 @@ mod_legislation_server <- function(id){
     })
     
     output$update_day_ui <- renderUI({
-      if(input$select_session == '2023 General Assembly'){
+      if(input$select_session == '2025 General Assembly'){
         update_day <- collect(tbl(db, 'legislative_update_day'))$update_day
         box(width = 2, str_glue('Last Update: {month(update_day, label = TRUE, abbr = FALSE)} {day(update_day)}, {year(update_day)}'))
       }
@@ -378,7 +378,9 @@ mod_legislation_server <- function(id){
     
     output$select_legislator_ui <- renderUI({
       if(!is.null(input$select_session)){
-        session_selected <- case_when(input$select_session == "2024 General Assembly" ~ 'ga_24',
+        session_selected <- case_when(input$select_session == "2026 General Assembly" ~ 'ga_26',
+                                      input$select_session == "2025 General Assembly" ~ 'ga_25',
+                                      input$select_session == "2024 General Assembly" ~ 'ga_24',
                                       input$select_session == "2023 General Assembly" ~ 'ga_23',
                                       input$select_session == "2022 General Assembly" ~ 'ga_22',
                                       input$select_session == "2021 General Assembly" ~ 'ga_21',
@@ -389,12 +391,12 @@ mod_legislation_server <- function(id){
         
         opts_df <- tbl(db, 'legislative_legislators') %>% 
           rename(leg_name = name) %>% 
-          pivot_longer(cols = starts_with('ga')) %>% 
           collect() %>% 
+          mutate(across(starts_with('ga_'), as.numeric)) %>% 
+          pivot_longer(cols = starts_with('ga')) %>% 
           filter(name == session_selected,
                  value == 1) %>% 
           select(leg_name, legislator_id, chamber)
-        
         
         opts <- opts_df$legislator_id
         names(opts) <- paste0(opts_df$leg_name,' (',opts_df$chamber,')')

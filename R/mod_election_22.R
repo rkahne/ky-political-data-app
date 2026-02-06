@@ -21,7 +21,7 @@ mod_election_22_ui <- function(id){
           )
   )
 }
-    
+
 #' election_22 Server Functions
 #'
 #' @noRd 
@@ -71,8 +71,8 @@ mod_election_22_server <- function(id){
           mutate(district = str_remove_all(district, 'District ')) %>% 
           left_join(can_tbl) %>% 
           mutate(candidate = case_when(!is.na(candidate) ~ candidate,
-                           as.numeric(district) %% 2 == 0 ~ 'white',
-                           T ~ 'black')) %>%  
+                                       as.numeric(district) %% 2 != 0 ~ 'white',
+                                       T ~ 'black')) %>%  
           leaflet() %>% 
           addTiles() %>% 
           addPolygons(
@@ -138,12 +138,12 @@ mod_election_22_server <- function(id){
           })
         ))
     })
- 
+    
   })
 }
-    
+
 ## To be copied in the UI
 # mod_election_22_ui("election_22_ui_1")
-    
+
 ## To be copied in the server
 # mod_election_22_server("election_22_ui_1")
