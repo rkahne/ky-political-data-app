@@ -4,12 +4,12 @@
 #'
 #' @param id,input,output,session Internal parameters for {shiny}.
 #'
-#' @noRd 
+#' @noRd
 #'
-#' @importFrom shiny NS tagList 
+#' @importFrom shiny NS tagList
 mod_elections_ui <- function(id){
   ns <- NS(id)
-  tabItem(tabName = 'elections', 
+  tabItem(tabName = 'elections',
           fluidRow(
             box(width = 2, uiOutput(ns('select_year_ui')) %>% withSpinner()),
             box(width = 2, uiOutput(ns('primary_general_ui')) %>% withSpinner()),
@@ -18,7 +18,7 @@ mod_elections_ui <- function(id){
             box(width = 2, uiOutput(ns('include_counties_ui')) %>% withSpinner())
           ),
           fluidRow(
-            box(width = 12, 
+            box(width = 12,
                 actionButton(ns('draw_map'), label = 'Draw Map'), 'Please only click me once and be patient :) (You will need to zoom manually)
                 Please note: results are based on scrape of election night results. Consult offical results for 100% correct totals.',
                 leafletOutput(ns('election_map'), height = 650) %>% withSpinner())
@@ -32,29 +32,26 @@ mod_elections_ui <- function(id){
           )
   )
 }
-    
+
 #' elections Server Functions
 #'
-#' @noRd 
+#' @noRd
 mod_elections_server <- function(id){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
-    
+
     map_data_init <- reactive({
-      if(length(input$select_year) > 0 & 
-         length(input$primary_general) > 0 &
-         length(input$select_election) > 0){
-        coun <- str_to_lower(input$include_counties)
-        tbl(db, 'election_data') %>% 
-          filter(year == !!input$select_year,
-                 election == !!str_to_lower(input$primary_general),
-                 race == !!input$select_election,
-                 county %in% coun) %>% 
-          distinct() %>% 
-          collect() 
-      }
-      }) 
-    
+      req(input$select_year, input$primary_general, input$select_election, input$include_counties)
+      coun <- str_to_lower(input$include_counties)
+      tbl(db, 'election_data') %>%
+        filter(year == !!input$select_year,
+               election == !!str_to_lower(input$primary_general),
+               race == !!input$select_election,
+               county %in% coun) %>%
+        distinct() %>%
+        collect()
+      })
+
     pol_pal_xl <- function(party, pct){
       case_when(party == 'REP' & pct > .8 ~ '#99000d',
                 party == 'REP' & pct > .75 ~ '#cb181d',
@@ -72,39 +69,39 @@ mod_elections_server <- function(id){
                 party == 'DEM' & pct > .55 ~ '#c6dbef',
                 party == 'DEM' & pct > .5 ~ '#deebf7',
                 party == 'DEM' ~ '#f7fbff',
-                
+
                 party == 'IND1' & pct >  .8  ~ '#6a51a3',
                 party == 'IND1' & pct >  .65 ~ '#9e9ac8',
                 party == 'IND1' & pct >  .5 ~ '#cbc9e2',
                 party == 'IND1' & pct < .5  ~ '#f2f0f7',
-                
+
                 party == 'IND2' & pct <  .8  ~ '#d94701',
                 party == 'IND2' & pct >  .65 ~ '#fd8d3c',
                 party == 'IND2' & pct >  .5  ~ '#fdbe85',
                 party == 'IND2' & pct <  .5  ~ '#feedde',
-                
+
                 party == 'IND3' & pct >  .8  ~ '#238b45',
                 party == 'IND3' & pct >  .65 ~ '#74c476',
                 party == 'IND3' & pct >  .5  ~ '#bae4b3',
                 party == 'IND3' & pct <  .5  ~ '#edf8e9',
-                
+
                 party == 'IND4' & pct >  .8  ~ '#ce1256',
                 party == 'IND4' & pct >  .65 ~ '#df65b0',
                 party == 'IND4' & pct >  .5  ~ '#d7b5d8',
                 party == 'IND4' & pct <  .5  ~ '#f1eef6',
                 T ~ 'white')
     }
-    
+
     create_reactable <- function(mdl, canl, coun_cd){
       if(nrow(canl) == 2){
-        mdl %>% 
-          left_join(canl) %>% 
-          select(-party, -candidate, -votes) %>% 
+        mdl %>%
+          left_join(canl) %>%
+          select(-party, -candidate, -votes) %>%
           pivot_wider(names_from = num, values_from = vote) %>%
-          mutate(across(starts_with("can"), 
-                        ~., 
-                        .names = "{.col}_pct")) %>% 
-          select(-total_votes) %>% 
+          mutate(across(starts_with("can"),
+                        ~.,
+                        .names = "{.col}_pct")) %>%
+          select(-total_votes) %>%
           reactable(
             columns = list(
               county = coun_cd,
@@ -128,14 +125,14 @@ mod_elections_server <- function(id){
             )
           )
       }else if(nrow(canl) == 3){
-        mdl %>% 
-          left_join(canl) %>% 
-          select(-party, -candidate, -votes) %>% 
+        mdl %>%
+          left_join(canl) %>%
+          select(-party, -candidate, -votes) %>%
           pivot_wider(names_from = num, values_from = vote) %>%
-          mutate(across(starts_with("can"), 
-                        ~., 
-                        .names = "{.col}_pct")) %>% 
-          select(-total_votes) %>% 
+          mutate(across(starts_with("can"),
+                        ~.,
+                        .names = "{.col}_pct")) %>%
+          select(-total_votes) %>%
           reactable(
             columns = list(
               county = coun_cd,
@@ -166,14 +163,14 @@ mod_elections_server <- function(id){
             )
           )
       }else if(nrow(canl) == 4){
-        mdl %>% 
-          left_join(canl) %>% 
-          select(-party, -candidate, -votes) %>% 
+        mdl %>%
+          left_join(canl) %>%
+          select(-party, -candidate, -votes) %>%
           pivot_wider(names_from = num, values_from = vote) %>%
-          mutate(across(starts_with("can"), 
-                        ~., 
-                        .names = "{.col}_pct")) %>% 
-          select(-total_votes) %>% 
+          mutate(across(starts_with("can"),
+                        ~.,
+                        .names = "{.col}_pct")) %>%
+          select(-total_votes) %>%
           reactable(
             columns = list(
               county = coun_cd,
@@ -211,61 +208,64 @@ mod_elections_server <- function(id){
             )
           )
       }else{
-        mdl %>% 
-          select(-vote, -total_votes, -party) %>% 
-          pivot_wider(names_from = candidate, values_from = votes) %>% 
+        mdl %>%
+          select(-vote, -total_votes, -party) %>%
+          pivot_wider(names_from = candidate, values_from = votes) %>%
           reactable(columns = list(
             county = coun_cd,
             winner = colDef(name = 'Winner', cell = function(value) str_to_title(value))
           ))
       }
-      
+
     }
-    
-    
+
+
     output$select_year_ui <- renderUI({
       yrs <- tbl(db, 'election_data') %>% select(year) %>% distinct() %>% collect()
       selectInput(ns('select_year'), label = 'Select Year', sort(yrs$year), max(yrs))
     })
-    
+
     output$primary_general_ui <- renderUI({
-      prim_gen <- tbl(db, 'election_data') %>% 
-        filter(year == !!input$select_year) %>% 
-        select(election) %>% 
-        distinct() %>% 
-        collect() %>% 
-        pull(election) %>% 
+      req(input$select_year)
+      prim_gen <- tbl(db, 'election_data') %>%
+        filter(year == !!input$select_year) %>%
+        select(election) %>%
+        distinct() %>%
+        collect() %>%
+        pull(election) %>%
         str_to_title()
       selectInput(ns('primary_general'), label = 'Election Type', prim_gen, 'General')
     })
-    
+
     output$select_election_ui <- renderUI({
-      elections <- tbl(db, 'election_data') %>% 
+      req(input$select_year, input$primary_general)
+      elections <- tbl(db, 'election_data') %>%
         filter(year == !!input$select_year,
-               election == str_to_lower(!!input$primary_general)) %>% 
-        select(race) %>% 
-        distinct() %>% 
-        collect() %>% 
+               election == str_to_lower(!!input$primary_general)) %>%
+        select(race) %>%
+        distinct() %>%
+        collect() %>%
         pull(race)
-      pickerInput(ns('select_election'), 
-                  label = 'Select Election', 
+      pickerInput(ns('select_election'),
+                  label = 'Select Election',
                   choices = elections,
                   multiple = FALSE,
                   options = pickerOptions('liveSearch' = TRUE))
     })
-    
+
     output$include_counties_ui <- renderUI({
-      counties <- tbl(db, 'election_data') %>% 
+      req(input$select_year, input$primary_general, input$select_election)
+      counties <- tbl(db, 'election_data') %>%
         filter(year == !!input$select_year,
                election == str_to_lower(!!input$primary_general),
-               race == !!input$select_election) %>% 
-        select(county) %>% 
-        distinct() %>% 
-        mutate(county = str_to_lower(county)) %>% 
-        collect() %>% 
+               race == !!input$select_election) %>%
+        select(county) %>%
+        distinct() %>%
+        mutate(county = str_to_lower(county)) %>%
+        collect() %>%
         pull(county)
-      pickerInput(ns('include_counties'), 
-                  label = 'Select Counties for Map', 
+      pickerInput(ns('include_counties'),
+                  label = 'Select Counties for Map',
                   choices = counties,
                   multiple = TRUE,
                   selected = counties,
@@ -274,13 +274,14 @@ mod_elections_server <- function(id){
                                           `deselect-all-text` = "Select None",
                                           `select-all-text` = "Select All"))
     })
-    
+
     output$election_result <- renderReactable({
-      map_data_init() %>% 
-        group_by(candidate) %>% 
-        summarize(votes = sum(votes)) %>% 
-        ungroup() %>% 
-        arrange(desc(votes)) %>% 
+      req(map_data_init())
+      map_data_init() %>%
+        group_by(candidate) %>%
+        summarize(votes = sum(votes)) %>%
+        ungroup() %>%
+        arrange(desc(votes)) %>%
         reactable(columns = list(
           candidate = colDef(name = 'Candidate',
                              cell = function(value) str_to_title(value),
@@ -291,10 +292,10 @@ mod_elections_server <- function(id){
           )
         )
     })
-    
+
     output$election_map <- renderLeaflet({
-      leaflet(ky_counties) %>% 
-        addTiles() %>% 
+      leaflet(ky_counties) %>%
+        addTiles() %>%
         addPolygons(
           weight = 2,
           opacity = 1,
@@ -308,80 +309,75 @@ mod_elections_server <- function(id){
             fillOpacity = 0.7,
             bringToFront = TRUE))
     })
-    
+
     output$election_table <- renderReactable({
-      if(!is.null(map_data_init())){
-        if(input$precinct_county == 'County' | nrow(map_data_init() %>% select(county, Precinct) %>% distinct()) > 1000){
-          map_data_long <- map_data_init() %>% 
-            group_by(county, candidate, party) %>% 
-            summarize(votes = sum(votes)) %>% 
-            ungroup() %>% 
-            group_by(county) %>% 
-            mutate(winner = candidate[which(votes == max(votes))],
-                   total_votes = sum(votes)) %>% 
-            ungroup() %>% 
-            rowwise() %>% 
-            mutate(vote = list(c(votes, total_votes))) %>% 
-            ungroup() 
-          can_list <- map_data_long %>% 
-            select(candidate) %>% 
-            distinct() %>% 
-            mutate(num = paste0('can', 1:n()))
-          
-          cd <- colDef(name = 'County',
-                       cell = function(value) str_to_title(value))
-          
-          create_reactable(map_data_long, can_list, cd)
-        }else{
-          map_data_long <- map_data_init() %>% 
-            filter(Precinct != 'county') %>% 
-            mutate(Precinct = paste(str_to_upper(county),Precinct, sep = ' - ')) %>% 
-            group_by(Precinct, candidate, party) %>% 
-            summarize(votes = sum(votes)) %>% 
-            ungroup() %>% 
-            nest(data = c(-Precinct)) %>% 
-            mutate(winner = map_chr(data, function(x){
-              winner <- x %>% 
-                filter(votes == max(votes)) %>% 
-                pull(party)
-              if(length(winner) == 1){
-                winner 
-              }else{ 
-                'Tie'
-              }
-            })) %>% 
-            unnest(data) %>% 
-            group_by(Precinct) %>% 
-            mutate(total_votes = sum(votes)) %>% 
-            ungroup() %>% 
-            rowwise() %>% 
-            mutate(vote = list(c(votes, total_votes))) %>% 
-            ungroup() %>% 
-            rename(county = Precinct)
-          can_list <- map_data_long %>% 
-            select(candidate) %>% 
-            distinct() %>% 
-            mutate(num = paste0('can', 1:n()))
-          
-          cd <- colDef(name = 'Precinct',
-                 cell = function(value) str_to_title(value))
-          
-          create_reactable(map_data_long, can_list, cd)
-        }
+      req(map_data_init())
+      if(input$precinct_county == 'County' | nrow(map_data_init() %>% select(county, Precinct) %>% distinct()) > 1000){
+        map_data_long <- map_data_init() %>%
+          group_by(county, candidate, party) %>%
+          summarize(votes = sum(votes)) %>%
+          ungroup() %>%
+          group_by(county) %>%
+          mutate(winner = candidate[which.max(votes)],
+                 total_votes = sum(votes)) %>%
+          ungroup() %>%
+          rowwise() %>%
+          mutate(vote = list(c(votes, total_votes))) %>%
+          ungroup()
+        can_list <- map_data_long %>%
+          select(candidate) %>%
+          distinct() %>%
+          mutate(num = paste0('can', 1:n()))
+
+        cd <- colDef(name = 'County',
+                     cell = function(value) str_to_title(value))
+
+        create_reactable(map_data_long, can_list, cd)
+      }else{
+        # Vectorized winner determination (replaced nest/map_chr/unnest)
+        map_data_long <- map_data_init() %>%
+          filter(Precinct != 'county') %>%
+          mutate(Precinct = paste(str_to_upper(county), Precinct, sep = ' - ')) %>%
+          group_by(Precinct, candidate, party) %>%
+          summarize(votes = sum(votes)) %>%
+          ungroup() %>%
+          group_by(Precinct) %>%
+          mutate(
+            max_votes = max(votes),
+            n_winners = sum(votes == max_votes),
+            winner = if_else(n_winners == 1L, party[which.max(votes)], 'Tie'),
+            total_votes = sum(votes)
+          ) %>%
+          ungroup() %>%
+          select(-max_votes, -n_winners) %>%
+          rowwise() %>%
+          mutate(vote = list(c(votes, total_votes))) %>%
+          ungroup() %>%
+          rename(county = Precinct)
+        can_list <- map_data_long %>%
+          select(candidate) %>%
+          distinct() %>%
+          mutate(num = paste0('can', 1:n()))
+
+        cd <- colDef(name = 'Precinct',
+               cell = function(value) str_to_title(value))
+
+        create_reactable(map_data_long, can_list, cd)
       }
     })
-    
+
     observeEvent(input$draw_map, {
+      req(map_data_init())
       if('primary' %in% pull(distinct(select(map_data_init(), party)), party)){
-        tbl_join <- map_data_init() %>% 
-          group_by(candidate) %>% 
+        tbl_join <- map_data_init() %>%
+          group_by(candidate) %>%
           summarize(votes = sum(votes)) %>%
-          mutate(pct = votes / sum(votes)) %>% 
-          arrange(desc(pct)) %>% 
-          mutate(cnt = 1:n()) %>% 
+          mutate(pct = votes / sum(votes)) %>%
+          arrange(desc(pct)) %>%
+          mutate(cnt = 1:n()) %>%
           mutate(party = paste0('IND', cnt))
-        tbl_dta <- map_data_init() %>% 
-          select(-party) %>% 
+        tbl_dta <- map_data_init() %>%
+          select(-party) %>%
           left_join(
             tbl_join %>% select(candidate, party),
             by = 'candidate'
@@ -390,31 +386,34 @@ mod_elections_server <- function(id){
         tbl_dta <- map_data_init()
       }
       if(input$precinct_county == 'County'){
-        map_data_long <- tbl_dta %>% 
-          group_by(county, candidate, party) %>% 
-          summarize(votes = sum(votes)) %>% 
-          ungroup() %>% 
-          collect() %>% 
-          mutate(can_txt = paste0(candidate, ': ', scales::comma(votes, accuracy = 1))) %>% 
-          group_by(county) %>% 
-          mutate(winner = party[which(votes == max(votes))],
-                 winning_share = votes[which(votes == max(votes))] / sum(votes),
-                 label_init = paste(can_txt, collapse = '<br>')) %>% 
-          mutate(fill_col = map2_chr(winner, winning_share, pol_pal_xl)) %>% 
-          ungroup() %>% 
-          rowwise() %>% 
-          mutate(label = HTML(str_glue('<h4>{str_to_title(county)}</h4>{label_init}'))) %>% 
+        map_data_long <- tbl_dta %>%
+          group_by(county, candidate, party) %>%
+          summarize(votes = sum(votes)) %>%
+          ungroup() %>%
+          collect() %>%
+          mutate(can_txt = paste0(candidate, ': ', scales::comma(votes, accuracy = 1))) %>%
+          group_by(county) %>%
+          mutate(winner = party[which.max(votes)],
+                 winning_share = votes[which.max(votes)] / sum(votes),
+                 label_init = paste(can_txt, collapse = '<br>')) %>%
+          mutate(fill_col = map2_chr(winner, winning_share, pol_pal_xl)) %>%
+          ungroup() %>%
+          # Vectorized label creation (replaced rowwise)
+          mutate(label = lapply(
+            str_glue('<h4>{str_to_title(county)}</h4>{label_init}'),
+            HTML
+          )) %>%
           select(-label_init, -can_txt)
-        map_data <- map_data_long %>% 
-          select(-party) %>% 
+        map_data <- map_data_long %>%
+          select(-party) %>%
           pivot_wider(names_from = candidate, values_from = votes)
-        
-        map_data_shp <- ky_counties %>% 
-          mutate(county = str_to_lower(NAME)) %>% 
+
+        map_data_shp <- ky_counties %>%
+          mutate(county = str_to_lower(NAME)) %>%
           left_join(map_data, by = 'county')
-        
+
         leafletProxy("election_map", data = map_data_shp) %>%
-          clearShapes() %>% 
+          clearShapes() %>%
           addPolygons(
             fillOpacity = .7,
             color = ~fill_col,
@@ -425,47 +424,48 @@ mod_elections_server <- function(id){
               textsize = "10px",
               direction = "auto")
           )
-          
+
       }else{
-        map_data_long_chk <- tbl_dta %>% 
-          collect() 
-        precinct_num <- map_data_long_chk %>% 
-          select(county, Precinct) %>% 
-          distinct() %>% 
+        map_data_long_chk <- tbl_dta %>%
+          collect()
+        precinct_num <- map_data_long_chk %>%
+          select(county, Precinct) %>%
+          distinct() %>%
           nrow()
         if(precinct_num > 1000){
           leafletProxy("election_map") %>%
             addControl(str_glue('<h4>Precinct Level only available on maps <1000 precincts</h4>'), position = 'bottomleft')
         }else{
-          map_data_long <- map_data_long_chk %>% 
-            nest(data = c(-Precinct, -county, -race)) %>% 
-            mutate(winner = map_chr(data, function(x){
-              winner <- x %>% 
-                filter(votes == max(votes)) %>% 
-                pull(party)
-              if(length(winner) == 1){
-                winner 
-              }else{ 
-                'Tie'
-              }
-            })) %>% 
-            unnest(data) %>% 
-            mutate(can_txt = paste0(candidate, ': ', scales::comma(votes, accuracy = 1))) %>% 
-            group_by(county, Precinct) %>% 
-            mutate(winning_share = votes[which(votes == max(votes))][1] / sum(votes),
-                   label_init = paste(can_txt, collapse = '<br>')) %>% 
-            mutate(fill_col = map2_chr(winner, winning_share, pol_pal_xl)) %>% 
-            ungroup() %>% 
-            rowwise() %>% 
-            mutate(label = HTML(str_glue('<h4>{str_to_title(county)} - {Precinct}</h4>{label_init}'))) %>% 
+          # Vectorized winner determination (replaced nest/map_chr/unnest)
+          map_data_long <- map_data_long_chk %>%
+            group_by(county, Precinct, race) %>%
+            mutate(
+              max_votes = max(votes),
+              n_winners = sum(votes == max_votes),
+              winner = if_else(n_winners == 1L, party[which.max(votes)], 'Tie')
+            ) %>%
+            ungroup() %>%
+            select(-max_votes, -n_winners) %>%
+            mutate(can_txt = paste0(candidate, ': ', scales::comma(votes, accuracy = 1))) %>%
+            group_by(county, Precinct) %>%
+            mutate(winning_share = votes[which.max(votes)] / sum(votes),
+                   label_init = paste(can_txt, collapse = '<br>')) %>%
+            mutate(fill_col = map2_chr(winner, winning_share, pol_pal_xl)) %>%
+            ungroup() %>%
+            # Vectorized label creation (replaced rowwise)
+            mutate(label = lapply(
+              str_glue('<h4>{str_to_title(county)} - {Precinct}</h4>{label_init}'),
+              HTML
+            )) %>%
             select(-label_init, -can_txt)
-          map_data <- map_data_long %>% 
-            select(-party) %>% 
-            pivot_wider(names_from = candidate, values_from = votes) %>% 
-            left_join(tbl(db, 'fips') %>% collect()) %>% 
+          map_data <- map_data_long %>%
+            select(-party) %>%
+            pivot_wider(names_from = candidate, values_from = votes) %>%
+            # Use pre-loaded fips_lookup instead of querying DB
+            left_join(fips_lookup) %>%
             mutate(VTDST = paste0('00',Precinct),
                    COUNTYFP = as.character(fips) %>% str_sub(3,5))
-          
+
           if(input$select_year < 2022){
             prec_map <- ky_precincts
           }else if(input$select_year == 2022){
@@ -475,14 +475,14 @@ mod_elections_server <- function(id){
           }else{
             prec_map <- ky_precincts_24
           }
-          
-          map_data_shp <- prec_map %>% 
+
+          map_data_shp <- prec_map %>%
             mutate(county = str_to_lower(NAME),
-                   COUNTYFP = as.character(COUNTYFP)) %>% 
+                   COUNTYFP = as.character(COUNTYFP)) %>%
             inner_join(map_data, by = c('COUNTYFP', 'VTDST'))
-          
+
           leafletProxy("election_map", data = map_data_shp) %>%
-            clearShapes() %>% 
+            clearShapes() %>%
             addPolygons(
               fillOpacity = .7,
               color = ~fill_col,
@@ -494,14 +494,14 @@ mod_elections_server <- function(id){
                 direction = "auto")
             )
         }
-        
+
       }
     })
   })
 }
-    
+
 ## To be copied in the UI
 # mod_elections_ui("elections_ui_1")
-    
+
 ## To be copied in the server
 # mod_elections_server("elections_ui_1")

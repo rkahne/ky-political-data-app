@@ -38,6 +38,11 @@ onStop(function() {
   pool::poolClose(db)
 })
 
+# Pre-load static lookup tables once at startup (avoids repeated DB queries)
+fips_lookup <- dplyr::tbl(db, 'fips') %>% dplyr::collect()
+zip_county_lookup <- dplyr::tbl(db, 'ky_zip_county') %>% dplyr::collect() %>%
+  dplyr::mutate(zip_code = as.character(zip_code))
+
 ky_counties <- readr::read_rds('/srv/data/shapefiles/counties.rds')
 ky_precincts <- readr::read_rds('/srv/data/shapefiles/precincts.rds')
 ky_precincts_22 <- readr::read_rds('/srv/data/shapefiles/ky_shp_22.rds') %>% mutate(VTDST = paste0('00',PRECINCT))
