@@ -87,6 +87,9 @@ mod_legislation_server <- function(id){
 
     # --- SHARED REACTIVES ---
 
+    # Stores a pending bill selection so it survives tab switches
+    pending_bill <- reactiveVal(NULL)
+
     # Bill metadata - used by overview table, bill selector, bill details
     l_md <- reactive({
       req(input$select_session, input$house_senate_table_select)
@@ -202,14 +205,21 @@ mod_legislation_server <- function(id){
         ungroup() %>%
         select(bill_num, title, bill_summary, last_action, spon_list, Democratic, Republican, passed_house, passed_senate, passed) %>%
         collect() %>%
-        mutate(bill_q = as.numeric(str_remove_all(bill_num, '\\D'))) %>%
+        mutate(
+          bill_q = as.numeric(str_remove_all(bill_num, '\\D')),
+          Democratic = as.integer(Democratic),
+          Republican = as.integer(Republican),
+          passed_house = as.integer(passed_house),
+          passed_senate = as.integer(passed_senate),
+          passed = as.integer(passed)
+        ) %>%
         arrange(bill_q) %>%
         select(-bill_q)
 
       data_table %>%
         reactable(columns = list(
           .selection = colDef(show = FALSE),
-          bill_num = colDef(name = 'Bill Number', cell = str_to_upper),
+          bill_num = colDef(name = 'Bill Number', cell = function(value) str_to_upper(value)),
           title = colDef(name = 'Bill Title', minWidth = 200),
           bill_summary = colDef(show = FALSE),
           last_action = colDef(name = 'Last Action', minWidth = 200),
@@ -251,7 +261,9 @@ mod_legislation_server <- function(id){
         pull(bill_num) %>%
         unique() %>%
         str_to_upper()
-      selectInput(ns('select_bill'), 'Select Bills', opts)
+      sel <- pending_bill()
+      if (is.null(sel) || !(sel %in% opts)) sel <- opts[1]
+      selectInput(ns('select_bill'), 'Select Bills', opts, selected = sel)
     })
 
     output$view_bill_lrc <- renderUI({
@@ -385,8 +397,10 @@ mod_legislation_server <- function(id){
 
     # Navigate from overview table to bill details
     observeEvent(getReactableState('bill_overview_table', 'selected'), {
+      sel <- str_to_upper(l_md()$bill_num[getReactableState('bill_overview_table', 'selected')])
+      pending_bill(sel)
       updateTabsetPanel(session = getDefaultReactiveDomain(), 'leg_tabs', 'bill_details')
-      updateSelectInput(session, 'select_bill', selected = str_to_upper(l_md()$bill_num[getReactableState('bill_overview_table', 'selected')]))
+      updateSelectInput(session, 'select_bill', selected = sel)
     })
 
     # --- LEGISLATOR DETAILS ---
@@ -491,15 +505,19 @@ mod_legislation_server <- function(id){
     # Navigate from legislator votes to bill details (uses cached data, no re-query)
     observeEvent(getReactableState('legislator_votes', 'selected'), {
       sel_df <- legislator_votes_data()
+      sel <- sel_df$bill_num_upper[getReactableState('legislator_votes', 'selected')]
+      pending_bill(sel)
       updateTabsetPanel(session = getDefaultReactiveDomain(), 'leg_tabs', 'bill_details')
-      updateSelectInput(session, 'select_bill', selected = sel_df$bill_num_upper[getReactableState('legislator_votes', 'selected')])
+      updateSelectInput(session, 'select_bill', selected = sel)
     })
 
     # Navigate from legislator sponsorship to bill details (uses cached data, no re-query)
     observeEvent(getReactableState('legislator_sponsorship', 'selected'), {
       sel_df <- legislator_sponsorship_data()
+      sel <- str_to_upper(sel_df$bill_num[getReactableState('legislator_sponsorship', 'selected')])
+      pending_bill(sel)
       updateTabsetPanel(session = getDefaultReactiveDomain(), 'leg_tabs', 'bill_details')
-      updateSelectInput(session, 'select_bill', selected = str_to_upper(sel_df$bill_num[getReactableState('legislator_sponsorship', 'selected')]))
+      updateSelectInput(session, 'select_bill', selected = sel)
     })
 
     # --- ACTIONS BY DAY ---

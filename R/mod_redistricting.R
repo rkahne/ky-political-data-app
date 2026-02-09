@@ -61,8 +61,8 @@ mod_redistricting_ui <- function(id){
 mod_redistricting_server <- function(id){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
-    house_14 <- read_rds('/srv/data/h_14_leaf.rds')
-    house_22 <- read_rds('/srv/data/h_22_leaf.rds')
+    house_14 <- tryCatch(read_rds('/srv/data/h_14_leaf.rds'), error = function(e) NULL)
+    house_22 <- tryCatch(read_rds('/srv/data/h_22_leaf.rds'), error = function(e) NULL)
 
     create_reactable <- function(mdl, canl, coun_cd){
       if(nrow(canl) == 2){
