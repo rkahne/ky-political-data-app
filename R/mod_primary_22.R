@@ -24,9 +24,9 @@ mod_primary_22_server <- function(id){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
     
-    lou_mayor_dem <- read_rds('/srv/data/maps/mayor_leaf.rds')
-    us3_cong_dem <- read_rds('/srv/data/maps/cong_leaf.rds')
-    fayette_ca_dem <- read_rds('/srv/data/maps/fayette_ca_leaf.rds')
+    lou_mayor_dem <- tryCatch(read_rds('/srv/data/maps/mayor_leaf.rds'), error = function(e) NULL)
+    us3_cong_dem <- tryCatch(read_rds('/srv/data/maps/cong_leaf.rds'), error = function(e) NULL)
+    fayette_ca_dem <- tryCatch(read_rds('/srv/data/maps/fayette_ca_leaf.rds'), error = function(e) NULL)
     output$prim_22_leaf <- renderLeaflet({
       if(input$sel_elec == 'Louisville Mayor DEM') lou_mayor_dem
       else if(input$sel_elec == 'KY-03 US Congress DEM') us3_cong_dem

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command \"Get-OdbcDriver | Select-Object Name, Platform | Format-Table -AutoSize\")",
+      "WebFetch(domain:odbc.postgresql.org)",
+      "Bash(powershell:*)"
+    ]
+  }
+}
