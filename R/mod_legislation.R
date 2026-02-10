@@ -92,7 +92,7 @@ mod_legislation_server <- function(id){
 
     # Bill metadata - used by overview table, bill selector, bill details
     l_md <- reactive({
-      req(input$select_session, input$house_senate_table_select)
+      req(input$select_session, !is.null(input$house_senate_table_select))
       chamber_prefix <- if(input$house_senate_table_select == TRUE) 'h' else 's'
       tbl(db, 'legislative_metadata') %>%
         filter(session == !!input$select_session,
@@ -176,8 +176,7 @@ mod_legislation_server <- function(id){
     # --- BILL OVERVIEW TABLE ---
 
     output$bill_overview_table <- renderReactable({
-      req(input$select_session, input$house_senate_table_select)
-
+      req(input$select_session, !is.null(input$house_senate_table_select))
       chamber_prefix <- if(input$house_senate_table_select == TRUE) 'h' else 's'
 
       tab_init <- tbl(db, 'legislative_metadata') %>%
