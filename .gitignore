@@ -35,3 +35,10 @@ rsconnect/
 .DS_Store
 Thumbs.db
 nul
+
+# --- LibreOffice / Office lock files ---
+.~lock.*#
+
+# --- Regenerated data-raw artifacts (manual.csv IS tracked; these are derived) ---
+data-raw/primary_party_unresolved.csv
+data-raw/primary_party_todo.csv
