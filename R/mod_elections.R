@@ -10,12 +10,28 @@
 mod_elections_ui <- function(id){
   ns <- NS(id)
   tabItem(tabName = 'elections',
+          # Responsive map height: fixed on desktop, taller (viewport-based) on mobile
+          tags$style(HTML(sprintf(
+            "#%1$s {height: 650px !important;}
+             @media (max-width: 768px) {
+               #%1$s {height: 75vh !important; min-height: 420px;}
+               .election-filters .form-group {margin-bottom: 8px;}
+             }",
+            ns('election_map')
+          ))),
           fluidRow(
-            box(width = 2, uiOutput(ns('select_year_ui')) %>% withSpinner()),
-            box(width = 2, uiOutput(ns('primary_general_ui')) %>% withSpinner()),
-            box(width = 4, uiOutput(ns('select_election_ui')) %>% withSpinner()),
-            box(width = 2, selectInput(ns('precinct_county'), label = 'Detail Level', c('Precinct', 'County'))),
-            box(width = 2, uiOutput(ns('include_counties_ui')) %>% withSpinner())
+            box(width = 12, title = 'Filters', status = 'primary',
+                collapsible = TRUE, collapsed = FALSE,
+                div(class = 'election-filters',
+                    fluidRow(
+                      column(width = 2, uiOutput(ns('select_year_ui')) %>% withSpinner()),
+                      column(width = 2, uiOutput(ns('primary_general_ui')) %>% withSpinner()),
+                      column(width = 4, uiOutput(ns('select_election_ui')) %>% withSpinner()),
+                      column(width = 2, selectInput(ns('precinct_county'), label = 'Detail Level', c('Precinct', 'County'))),
+                      column(width = 2, uiOutput(ns('include_counties_ui')) %>% withSpinner())
+                    )
+                )
+            )
           ),
           fluidRow(
             box(width = 12,
@@ -31,6 +47,29 @@ mod_elections_ui <- function(id){
                 reactableOutput(ns('election_table')))
           )
   )
+}
+
+#' Build grouped, sorted choices for the election picker
+#'
+#' Joins the supplied race strings to the `race_lookup` crosswalk (built by
+#' data-raw/build_race_lookup.R) and returns a named list suitable for
+#' pickerInput `choices`: each name is a friendly office-level header and each
+#' value is the raw race strings in that group, sorted by canonical office then
+#' district (numeric) then name. Empty groups are dropped. Races missing from
+#' the crosswalk fall back to the "Local" group so the picker never loses items.
+#'
+#' @param races Character vector of distinct race names (already filtered to the
+#'   selected year / election type).
+#' @param lookup The pre-loaded `race_lookup` data frame.
+#' @return Named list of character vectors, in office-level display order.
+#' @noRd
+build_election_choices <- function(races, lookup){
+  df <- tibble(race = unique(races)) %>%
+    left_join(lookup, by = 'race') %>%
+    mutate(office = if_else(is.na(office), race, office))
+  # Group + sort via the shared helper (see R/utils_office.R)
+  group_office_choices(values = df$race, office_level = df$office_level,
+                       office = df$office, district = df$district)
 }
 
 #' elections Server Functions
@@ -52,44 +91,34 @@ mod_elections_server <- function(id){
         collect()
       })
 
+    # Continuous color gradient: hue encodes the winning party, saturation/
+    # darkness encodes the winning share (margin of victory). A pale fill is a
+    # near-tie; a deep fill is a blowout. Vectorized over party/pct.
     pol_pal_xl <- function(party, pct){
-      case_when(party == 'REP' & pct > .8 ~ '#99000d',
-                party == 'REP' & pct > .75 ~ '#cb181d',
-                party == 'REP' & pct > .7 ~ '#ef3b2c',
-                party == 'REP' & pct > .65 ~ '#fb6a4a',
-                party == 'REP' & pct > .6 ~ '#fc9272',
-                party == 'REP' & pct > .55 ~ '#fcbba1',
-                party == 'REP' & pct > .5 ~ '#fee0d2',
-                party == 'REP' ~ '#fff5f0',
-                party == 'DEM' & pct > .8 ~ '#084594',
-                party == 'DEM' & pct > .75 ~ '#2171b5',
-                party == 'DEM' & pct > .7 ~ '#4292c6',
-                party == 'DEM' & pct > .65 ~ '#6baed6',
-                party == 'DEM' & pct > .6 ~ '#9ecae1',
-                party == 'DEM' & pct > .55 ~ '#c6dbef',
-                party == 'DEM' & pct > .5 ~ '#deebf7',
-                party == 'DEM' ~ '#f7fbff',
-
-                party == 'IND1' & pct >  .8  ~ '#6a51a3',
-                party == 'IND1' & pct >  .65 ~ '#9e9ac8',
-                party == 'IND1' & pct >  .5 ~ '#cbc9e2',
-                party == 'IND1' & pct < .5  ~ '#f2f0f7',
-
-                party == 'IND2' & pct <  .8  ~ '#d94701',
-                party == 'IND2' & pct >  .65 ~ '#fd8d3c',
-                party == 'IND2' & pct >  .5  ~ '#fdbe85',
-                party == 'IND2' & pct <  .5  ~ '#feedde',
-
-                party == 'IND3' & pct >  .8  ~ '#238b45',
-                party == 'IND3' & pct >  .65 ~ '#74c476',
-                party == 'IND3' & pct >  .5  ~ '#bae4b3',
-                party == 'IND3' & pct <  .5  ~ '#edf8e9',
-
-                party == 'IND4' & pct >  .8  ~ '#ce1256',
-                party == 'IND4' & pct >  .65 ~ '#df65b0',
-                party == 'IND4' & pct >  .5  ~ '#d7b5d8',
-                party == 'IND4' & pct <  .5  ~ '#f1eef6',
-                T ~ 'white')
+      ramps <- list(
+        REP  = c('#fff5f0','#fee0d2','#fcbba1','#fc9272','#fb6a4a','#ef3b2c','#cb181d','#99000d'),
+        DEM  = c('#f7fbff','#deebf7','#c6dbef','#9ecae1','#6baed6','#4292c6','#2171b5','#084594'),
+        IND1 = c('#fcfbfd','#dadaeb','#bcbddc','#9e9ac8','#807dba','#6a51a3','#54278f'),
+        IND2 = c('#fff5eb','#fdd0a2','#fdae6b','#fd8d3c','#f16913','#d94801','#8c2d04'),
+        IND3 = c('#f7fcf5','#c7e9c0','#a1d99b','#74c476','#41ab5d','#238b45','#005a32'),
+        IND4 = c('#f7f4f9','#d4b9da','#c994c7','#df65b0','#e7298a','#ce1256','#91003f')
+      )
+      # Map the competitive range (50% -> 85% of the vote) onto the full ramp so
+      # differences in margin are visible; wins above 85% saturate at the darkest shade.
+      scale_lo <- 0.5
+      scale_hi <- 0.85
+      out <- rep('#f0f0f0', length(party))
+      for(p in names(ramps)){
+        idx <- which(party == p)
+        if(length(idx) > 0){
+          ramp_fn <- grDevices::colorRamp(ramps[[p]], space = 'Lab')
+          t <- (pct[idx] - scale_lo) / (scale_hi - scale_lo)
+          t[is.na(t)] <- 0
+          t <- pmin(pmax(t, 0), 1)
+          out[idx] <- grDevices::rgb(ramp_fn(t), maxColorValue = 255)
+        }
+      }
+      out
     }
 
     create_reactable <- function(mdl, canl, coun_cd){
@@ -222,7 +251,8 @@ mod_elections_server <- function(id){
 
     output$select_year_ui <- renderUI({
       yrs <- tbl(db, 'election_data') %>% select(year) %>% distinct() %>% collect()
-      selectInput(ns('select_year'), label = 'Select Year', sort(yrs$year), max(yrs))
+      # Newest year first, default to most recent
+      selectInput(ns('select_year'), label = 'Select Year', sort(yrs$year, decreasing = TRUE), max(yrs$year))
     })
 
     output$primary_general_ui <- renderUI({
@@ -248,7 +278,7 @@ mod_elections_server <- function(id){
         pull(race)
       pickerInput(ns('select_election'),
                   label = 'Select Election',
-                  choices = elections,
+                  choices = build_election_choices(elections, race_lookup),
                   multiple = FALSE,
                   options = pickerOptions('liveSearch' = TRUE))
     })
@@ -295,18 +325,18 @@ mod_elections_server <- function(id){
 
     output$election_map <- renderLeaflet({
       leaflet(ky_counties) %>%
-        addTiles() %>%
+        addProviderTiles(providers$CartoDB.Positron) %>%
         addPolygons(
-          weight = 2,
-          opacity = 1,
-          color = "black",
-          dashArray = "3",
+          weight = 1,
+          opacity = 0.6,
+          color = "#888888",
+          fillColor = "#cccccc",
           fillOpacity = 0.1,
+          smoothFactor = 0.3,
           highlightOptions = highlightOptions(
-            weight = 5,
-            color = "#666",
-            dashArray = "",
-            fillOpacity = 0.7,
+            weight = 2,
+            color = "#444",
+            fillOpacity = 0.3,
             bringToFront = TRUE))
     })
 
@@ -396,7 +426,7 @@ mod_elections_server <- function(id){
           mutate(winner = party[which.max(votes)],
                  winning_share = votes[which.max(votes)] / sum(votes),
                  label_init = paste(can_txt, collapse = '<br>')) %>%
-          mutate(fill_col = map2_chr(winner, winning_share, pol_pal_xl)) %>%
+          mutate(fill_col = pol_pal_xl(winner, winning_share)) %>%
           ungroup() %>%
           # Vectorized label creation (replaced rowwise)
           mutate(label = lapply(
@@ -412,18 +442,35 @@ mod_elections_server <- function(id){
           mutate(county = str_to_lower(NAME)) %>%
           left_join(map_data, by = 'county')
 
-        leafletProxy("election_map", data = map_data_shp) %>%
+        # Zoom to the counties that actually have results (the selected ones)
+        bb <- map_data_shp %>%
+          filter(!is.na(fill_col)) %>%
+          sf::st_transform(4326) %>%
+          sf::st_bbox()
+
+        m <- leafletProxy("election_map", data = map_data_shp) %>%
           clearShapes() %>%
           addPolygons(
-            fillOpacity = .7,
-            color = ~fill_col,
+            fillColor = ~fill_col,
+            fillOpacity = 0.78,
+            color = "#ffffff",
             weight = 1,
+            opacity = 0.7,
+            smoothFactor = 0.3,
             label = ~label,
+            highlightOptions = highlightOptions(
+              weight = 3,
+              color = "#444444",
+              fillOpacity = 0.9,
+              bringToFront = TRUE),
             labelOptions = labelOptions(
               style = list("font-weight" = "normal", padding = "3px 8px"),
-              textsize = "10px",
+              textsize = "12px",
               direction = "auto")
           )
+        if(all(is.finite(bb))){
+          m %>% fitBounds(bb[['xmin']], bb[['ymin']], bb[['xmax']], bb[['ymax']])
+        }
 
       }else{
         map_data_long_chk <- tbl_dta %>%
@@ -450,7 +497,7 @@ mod_elections_server <- function(id){
             group_by(county, Precinct) %>%
             mutate(winning_share = votes[which.max(votes)] / sum(votes),
                    label_init = paste(can_txt, collapse = '<br>')) %>%
-            mutate(fill_col = map2_chr(winner, winning_share, pol_pal_xl)) %>%
+            mutate(fill_col = pol_pal_xl(winner, winning_share)) %>%
             ungroup() %>%
             # Vectorized label creation (replaced rowwise)
             mutate(label = lapply(
@@ -481,18 +528,34 @@ mod_elections_server <- function(id){
                    COUNTYFP = as.character(COUNTYFP)) %>%
             inner_join(map_data, by = c('COUNTYFP', 'VTDST'))
 
-          leafletProxy("election_map", data = map_data_shp) %>%
+          # inner_join keeps only matched precincts, so bbox is the area shown
+          bb <- map_data_shp %>%
+            sf::st_transform(4326) %>%
+            sf::st_bbox()
+
+          m <- leafletProxy("election_map", data = map_data_shp) %>%
             clearShapes() %>%
             addPolygons(
-              fillOpacity = .7,
-              color = ~fill_col,
+              fillColor = ~fill_col,
+              fillOpacity = 0.78,
+              color = "#ffffff",
               weight = 1,
+              opacity = 0.7,
+              smoothFactor = 0.3,
               label = ~label,
+              highlightOptions = highlightOptions(
+                weight = 3,
+                color = "#444444",
+                fillOpacity = 0.9,
+                bringToFront = TRUE),
               labelOptions = labelOptions(
                 style = list("font-weight" = "normal", padding = "3px 8px"),
-                textsize = "10px",
+                textsize = "12px",
                 direction = "auto")
             )
+          if(all(is.finite(bb))){
+            m %>% fitBounds(bb[['xmin']], bb[['ymin']], bb[['xmax']], bb[['ymax']])
+          }
         }
 
       }

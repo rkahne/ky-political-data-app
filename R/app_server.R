@@ -40,6 +40,9 @@ onStop(function() {
 fips_lookup <- dplyr::tbl(db, 'fips') %>% dplyr::collect()
 zip_county_lookup <- dplyr::tbl(db, 'ky_zip_county') %>% dplyr::collect() %>%
   dplyr::mutate(zip_code = as.character(zip_code))
+# Crosswalk of raw race string -> canonical office classification.
+# Built by data-raw/build_race_lookup.R; used to group/sort the election picker.
+race_lookup <- dplyr::tbl(db, 'race_lookup') %>% dplyr::collect()
 
 # Load spatial data from PostGIS using RPostgres (which understands geometry natively)
 read_sf_table <- function(table_name) {
