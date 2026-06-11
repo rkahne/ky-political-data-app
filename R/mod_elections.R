@@ -72,6 +72,56 @@ build_election_choices <- function(races, lookup){
                        office = df$office, district = df$district)
 }
 
+# Separator embedded in a primary picker value to carry both the race string and
+# the chosen party, e.g. "GOVERNOR ...<US>REP". Uses the ASCII unit-separator,
+# which never appears in race names.
+PRIMARY_SEP <- ""
+
+#' Build grouped primary picker choices, split by party
+#'
+#' For a primary year, each partisan race becomes one entry per party present
+#' (e.g. "... (Republican)") plus, if it still has unresolved candidates, an
+#' "(Unlabeled)" entry so none disappear. Nonpartisan races (judicial/local/
+#' ballot) stay a single entry. Values encode race + party token; the server
+#' splits them with PRIMARY_SEP.
+#'
+#' @param year Selected year.
+#' @param ppl The pre-loaded primary_party_lookup (year, race, candidate, party, office, office_level).
+#' @param rlookup The pre-loaded race_lookup (for numeric district sort).
+#' @return Named list for pickerInput `choices`.
+#' @noRd
+build_primary_choices <- function(year, ppl, rlookup){
+  partisan <- c('federal', 'state_exec', 'state_leg', 'county')
+  d <- ppl %>% filter(year == !!year)
+  if(nrow(d) == 0) return(list())
+
+  party_lab <- function(p) recode(p, DEM = 'Democratic', REP = 'Republican', .default = p)
+
+  resolved <- d %>%
+    filter(!is.na(party)) %>%
+    distinct(race, office, office_level, party) %>%
+    mutate(value = paste0(race, PRIMARY_SEP, party),
+           label = paste0(race, ' (', party_lab(party), ')'))
+
+  unlabeled <- d %>%
+    filter(office_level %in% partisan, is.na(party)) %>%
+    distinct(race, office, office_level) %>%
+    mutate(value = paste0(race, PRIMARY_SEP, '__UNLABELED__'),
+           label = paste0(race, ' (Unlabeled)'))
+
+  nonpartisan <- d %>%
+    filter(!office_level %in% partisan) %>%
+    distinct(race, office, office_level) %>%
+    mutate(value = paste0(race, PRIMARY_SEP, '__ALL__'),
+           label = race)
+
+  rows <- bind_rows(resolved, unlabeled, nonpartisan) %>%
+    left_join(distinct(rlookup, race, district), by = 'race')
+
+  group_office_choices(values = rows$value, office_level = rows$office_level,
+                       office = rows$office, district = rows$district, labels = rows$label)
+}
+
 #' elections Server Functions
 #'
 #' @noRd
@@ -79,16 +129,51 @@ mod_elections_server <- function(id){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
 
+    is_primary <- reactive(str_to_lower(input$primary_general %||% '') == 'primary')
+
+    # For primaries, input$select_election encodes "<race><SEP><party-token>".
+    # For generals it is just the race string.
+    selected_race <- reactive({
+      req(input$select_election)
+      strsplit(input$select_election, PRIMARY_SEP, fixed = TRUE)[[1]][1]
+    })
+    selected_party <- reactive({
+      req(input$select_election)
+      parts <- strsplit(input$select_election, PRIMARY_SEP, fixed = TRUE)[[1]]
+      if(length(parts) >= 2) parts[2] else NA_character_
+    })
+
     map_data_init <- reactive({
       req(input$select_year, input$primary_general, input$select_election, input$include_counties)
       coun <- str_to_lower(input$include_counties)
-      tbl(db, 'election_data') %>%
+      base <- tbl(db, 'election_data') %>%
         filter(year == !!input$select_year,
                election == !!str_to_lower(input$primary_general),
-               race == !!input$select_election,
+               race == !!selected_race(),
                county %in% coun) %>%
         distinct() %>%
         collect()
+
+      if(!is_primary()) return(base)
+
+      # Split the primary into the chosen partisan election via primary_party_lookup.
+      sp <- selected_party()
+      lk <- primary_party_lookup %>%
+        filter(year == !!input$select_year, race == !!selected_race()) %>%
+        select(candidate, plk_party = party)
+      base <- base %>% left_join(lk, by = 'candidate')
+      if(!is.na(sp) && sp %in% c('DEM', 'REP')){
+        # Real party: keep only its candidates and stamp the party so the map
+        # colors by that party's gradient (same path as a general election).
+        base %>% filter(plk_party == sp) %>%
+          mutate(party = plk_party) %>% select(-plk_party)
+      }else if(!is.na(sp) && sp == '__UNLABELED__'){
+        # Not-yet-assigned candidates: keep party = 'primary' (rank coloring).
+        base %>% filter(is.na(plk_party)) %>% select(-plk_party)
+      }else{
+        # Nonpartisan primary (or transitional state): show everyone as today.
+        base %>% select(-plk_party)
+      }
       })
 
     # Continuous color gradient: hue encodes the winning party, saturation/
@@ -269,16 +354,22 @@ mod_elections_server <- function(id){
 
     output$select_election_ui <- renderUI({
       req(input$select_year, input$primary_general)
-      elections <- tbl(db, 'election_data') %>%
-        filter(year == !!input$select_year,
-               election == str_to_lower(!!input$primary_general)) %>%
-        select(race) %>%
-        distinct() %>%
-        collect() %>%
-        pull(race)
+      if(is_primary()){
+        # Primaries are split by party (see build_primary_choices).
+        choices <- build_primary_choices(input$select_year, primary_party_lookup, race_lookup)
+      }else{
+        elections <- tbl(db, 'election_data') %>%
+          filter(year == !!input$select_year,
+                 election == str_to_lower(!!input$primary_general)) %>%
+          select(race) %>%
+          distinct() %>%
+          collect() %>%
+          pull(race)
+        choices <- build_election_choices(elections, race_lookup)
+      }
       pickerInput(ns('select_election'),
                   label = 'Select Election',
-                  choices = build_election_choices(elections, race_lookup),
+                  choices = choices,
                   multiple = FALSE,
                   options = pickerOptions('liveSearch' = TRUE))
     })
@@ -288,7 +379,7 @@ mod_elections_server <- function(id){
       counties <- tbl(db, 'election_data') %>%
         filter(year == !!input$select_year,
                election == str_to_lower(!!input$primary_general),
-               race == !!input$select_election) %>%
+               race == !!selected_race()) %>%
         select(county) %>%
         distinct() %>%
         mutate(county = str_to_lower(county)) %>%

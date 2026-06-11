@@ -142,11 +142,15 @@ classify_office <- function(strings){
 #' @param office_level Character vector (same length) of office_level codes.
 #' @param office Character vector for secondary sort; defaults to `values`.
 #' @param district Optional vector for numeric tertiary sort within an office.
+#' @param labels Optional display labels for each value (the text shown in the
+#'   picker). Defaults to `values`. When supplied, each group's vector is named
+#'   so pickerInput renders the label while returning the value.
 #' @return Named list of character vectors, in office-level display order.
 #' @noRd
-group_office_choices <- function(values, office_level, office = values, district = NA){
+group_office_choices <- function(values, office_level, office = values, district = NA, labels = values){
   df <- dplyr::tibble(
       value = values,
+      label = labels,
       office_level = dplyr::if_else(is.na(office_level), 'local', office_level),
       office = office,
       district_num = suppressWarnings(as.integer(district))
@@ -154,7 +158,10 @@ group_office_choices <- function(values, office_level, office = values, district
     dplyr::mutate(office_level = factor(office_level, levels = office_level_order)) %>%
     dplyr::arrange(office_level, office, district_num, stringr::str_to_lower(value))
 
-  out <- lapply(office_level_order, function(lv) df$value[df$office_level == lv])
+  out <- lapply(office_level_order, function(lv) {
+    sub <- df[df$office_level == lv, ]
+    stats::setNames(sub$value, sub$label)
+  })
   names(out) <- unname(office_level_label[office_level_order])
   out[lengths(out) > 0]
 }
