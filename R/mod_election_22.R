@@ -4,12 +4,12 @@
 #'
 #' @param id,input,output,session Internal parameters for {shiny}.
 #'
-#' @noRd 
+#' @noRd
 #'
-#' @importFrom shiny NS tagList 
+#' @importFrom shiny NS tagList
 mod_election_22_ui <- function(id){
   ns <- NS(id)
-  tabItem(tabName = 'election_22', 
+  tabItem(tabName = 'election_22',
           fluidRow(
             switchInput(ns('house_senate_select'), value = TRUE, onLabel = 'House', offLabel = 'Senate')
           ),
@@ -24,95 +24,100 @@ mod_election_22_ui <- function(id){
 
 #' election_22 Server Functions
 #'
-#' @noRd 
+#' @noRd
 mod_election_22_server <- function(id){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
-    
+
+    # Shared reactive: fetch candidates once per house/senate toggle
+    candidates_data <- reactive({
+      req(input$house_senate_select)
+      office <- if(input$house_senate_select == TRUE) 'State Representative' else 'State Senator'
+      tbl(db, 'candidates_22') %>%
+        filter(office == !!office) %>%
+        distinct() %>%
+        collect() %>%
+        mutate(candidate = if_else(is.na(lrc_website), '#6baed6', '#08519c'),
+               district = as.character(district),
+               label = if_else(is.na(middle_name),
+                                str_glue('{district}-{first_name} {last_name}'),
+                                str_glue('{district}-{first_name} {middle_name} {last_name}')))
+    })
+
     output$candidate_leaflet <- renderLeaflet({
+      req(candidates_data())
+      can_tbl <- candidates_data()
+
       if(input$house_senate_select == TRUE){
-        can_tbl <- tbl(db, 'candidates_22') %>% 
-          filter(office == 'State Representative') %>%  
-          distinct() %>% 
-          collect() %>% 
-          mutate(candidate = if_else(is.na(lrc_website), '#6baed6', '#08519c'),
-                 district = as.character(district),
-                 label = if_else(is.na(middle_name), str_glue('{district}-{first_name} {last_name}'), str_glue('{district}-{first_name} {middle_name} {last_name}')))
-        house_plan_hcs %>% 
-          left_join(can_tbl) %>% 
-          replace_na(list(candidate = 'white')) %>% 
-          leaflet() %>% 
-          addTiles() %>% 
+        house_plan_hcs %>%
+          left_join(can_tbl) %>%
+          replace_na(list(candidate = 'white')) %>%
+          leaflet() %>%
+          addTiles() %>%
           addPolygons(
             weight = 2,
             opacity = 1,
             color = "black",
             fillOpacity = 0,
             label = ~label
-          ) %>% 
+          ) %>%
           addPolygons(
             fillOpacity = .7,
             color = ~candidate,
             weight = 1,
             label = ~label
-          ) %>% 
+          ) %>%
           addLegend(position = 'topright',
                     colors = c('#6baed6', '#08519c'),
-                    labels = c('New Candidate', 'Incumbent')) 
+                    labels = c('New Candidate', 'Incumbent'))
       }else{
-        can_tbl <- tbl(db, 'candidates_22') %>% 
-          filter(office == 'State Senator') %>%  
-          distinct() %>% 
-          collect() %>% 
-          mutate(candidate = if_else(is.na(lrc_website), '#6baed6', '#08519c'),
-                 district = as.character(district),
-                 label = if_else(is.na(middle_name), str_glue('{district}-{first_name} {last_name}'), str_glue('{district}-{first_name} {middle_name} {last_name}')))
-        sen_plan %>% 
-          mutate(district = str_remove_all(district, 'District ')) %>% 
-          left_join(can_tbl) %>% 
+        sen_plan %>%
+          mutate(district = str_remove_all(district, 'District ')) %>%
+          left_join(can_tbl) %>%
           mutate(candidate = case_when(!is.na(candidate) ~ candidate,
                                        as.numeric(district) %% 2 != 0 ~ 'white',
-                                       T ~ 'black')) %>%  
-          leaflet() %>% 
-          addTiles() %>% 
+                                       T ~ 'black')) %>%
+          leaflet() %>%
+          addTiles() %>%
           addPolygons(
             weight = 2,
             opacity = 1,
             color = "black",
             fillOpacity = 0,
             label = ~label
-          ) %>% 
+          ) %>%
           addPolygons(
             fillOpacity = .7,
             color = ~candidate,
             weight = 1,
             label = ~label
-          ) %>% 
+          ) %>%
           addLegend(position = 'topright',
                     colors = c('#6baed6', '#08519c'),
-                    labels = c('New Candidate', 'Incumbent')) 
+                    labels = c('New Candidate', 'Incumbent'))
       }
     })
-    
+
     output$candidate_table <- renderReactable({
+      req(input$house_senate_select, input$candidate_leaflet_shape_click)
       if(input$house_senate_select == TRUE){
         dist_sf <- st_contains(house_plan_hcs, st_point(c(input$candidate_leaflet_shape_click$lng, input$candidate_leaflet_shape_click$lat)), sparse = FALSE)
         dist <- house_plan_hcs$district[which(dist_sf == T)]
-        df <- tbl(db, 'candidates_22') %>% 
+        df <- tbl(db, 'candidates_22') %>%
           filter(office == 'State Representative',
                  district == dist)
       }else{
         dist_sf <- st_contains(sen_plan, st_point(c(input$candidate_leaflet_shape_click$lng, input$candidate_leaflet_shape_click$lat)), sparse = FALSE)
         dist <- sen_plan$district[which(dist_sf == T)] %>% str_remove_all('District ') %>% as.numeric()
-        df <- tbl(db, 'candidates_22') %>% 
+        df <- tbl(db, 'candidates_22') %>%
           filter(office == 'State Senator',
                  district == dist)
       }
-      
-      df %>% 
-        collect() %>% 
-        mutate(name = if_else(is.na(middle_name), str_glue('{first_name} {last_name}'), str_glue('{first_name} {middle_name} {last_name}'))) %>% 
-        select(name, district, political_website, lrc_website, facebook, twitter, instagram) %>% 
+
+      df %>%
+        collect() %>%
+        mutate(name = if_else(is.na(middle_name), str_glue('{first_name} {last_name}'), str_glue('{first_name} {middle_name} {last_name}'))) %>%
+        select(name, district, political_website, lrc_website, facebook, twitter, instagram) %>%
         reactable(columns = list(
           name = colDef(name = ' '),
           district = colDef(name = ' ', cell = function(value) str_glue('District {value}')),
@@ -138,7 +143,7 @@ mod_election_22_server <- function(id){
           })
         ))
     })
-    
+
   })
 }
 
