@@ -43,6 +43,23 @@ mod_fundraising_ui <- function(id){
   )
 }
 
+#' Build grouped, sorted choices for the fundraising office picker
+#'
+#' Classifies the (title-cased) office_sought values into office-level groups
+#' via the shared classifier in R/utils_office.R, mirroring the elections
+#' picker. Office_sought has no district component, so within a group the
+#' offices sort alphabetically.
+#'
+#' @param offices Character vector of office_sought values (already title-cased).
+#' @return Named list of character vectors for pickerInput `choices`.
+#' @noRd
+build_office_choices <- function(offices){
+  offices <- unique(offices)
+  cl <- classify_office(offices)
+  group_office_choices(values = offices, office_level = cl$office_level,
+                       office = cl$office, district = cl$district)
+}
+
 #' fundraising Server Functions
 #'
 #' @noRd
@@ -65,7 +82,8 @@ mod_fundraising_server <- function(id){
         mutate(n = 1:n()) %>%
         filter(n == 1) %>%
         select(-n) %>%
-        ungroup()
+        ungroup() %>%
+        arrange(desc(election_date))   # most recent election first
       elect_opts <- elec_opts_tib$election_date
       names(elect_opts) <- elec_opts_tib$election_select
       selectInput(ns('select_election'), 'Select Election', elect_opts)
@@ -82,7 +100,10 @@ mod_fundraising_server <- function(id){
         pull(office_sought) %>%
         str_to_title()
 
-      selectInput(ns('select_office'), 'Select Office', office_opts)
+      pickerInput(ns('select_office'), 'Select Office',
+                  choices = build_office_choices(office_opts),
+                  multiple = FALSE,
+                  options = pickerOptions('liveSearch' = TRUE))
     })
 
     output$select_candidate_ui <- renderUI({
@@ -96,11 +117,15 @@ mod_fundraising_server <- function(id){
         collect() %>%
         mutate(candidate_name = paste(recipient_first_name, recipient_last_name)) %>%
         select(candidate_name, candidate) %>%
-        distinct()
+        distinct() %>%
+        arrange(str_to_lower(candidate_name))
       candidate_opts <- candidate_opts_tbl$candidate
       names(candidate_opts) <- candidate_opts_tbl$candidate_name
 
-      selectInput(ns('select_candidate'), 'Select Candidate', candidate_opts)
+      pickerInput(ns('select_candidate'), 'Select Candidate',
+                  choices = candidate_opts,
+                  multiple = FALSE,
+                  options = pickerOptions('liveSearch' = TRUE))
     })
 
     # --- SHARED REACTIVES (fetched once, used by multiple outputs) ---
