@@ -1,5 +1,37 @@
-.Rproj.user
+# --- RStudio ---
+.Rproj.user/
+*.Rproj
+
+# --- R session / history artifacts ---
 .Rhistory
+.Rapp.history
 .RData
+.RDataTmp
 .Ruserdata
+*.Rcheck/
+.Renviron
+
+# --- Package build / check output ---
+*.tar.gz
+*.tgz
+src/*.o
+src/*.so
+src/*.dll
+
+# --- Shiny / shinyapps.io deployment ---
+rsconnect/
+
+# --- Secrets / local config ---
+.Renviron.local
+.env
+.positai
+
+# --- Editor / tooling local settings ---
+.claude/settings.local.json
+.vscode/
+.idea/
+
+# --- OS cruft ---
+.DS_Store
+Thumbs.db
 nul
