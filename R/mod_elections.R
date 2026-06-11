@@ -489,7 +489,7 @@ mod_elections_server <- function(id){
 
     observeEvent(input$draw_map, {
       req(map_data_init())
-      if('primary' %in% pull(distinct(select(map_data_init(), party)), party)){
+      if(is_primary()){
         tbl_join <- map_data_init() %>%
           group_by(candidate) %>%
           summarize(votes = sum(votes)) %>%
